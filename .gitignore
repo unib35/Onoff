@@ -1,0 +1,27 @@
+# 비밀값 — 이름만 .env.example에
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.p8
+*.mobileprovision
+
+# 로컬 도구 설정
+.claude/settings.local.json
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# 빌드 산출물
+node_modules/
+DerivedData/
+xcuserdata/
+*.xcresult
+build/
+dist/
+
+# Claude Code worktree (에이전트 · -w)
+.claude/worktrees/

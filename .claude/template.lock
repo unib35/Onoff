@@ -1,0 +1,25 @@
+# ai-dev-starter 설치 기록 — newproj --update 가 읽는다. 직접 고치지 않는다.
+template_commit be0b64b
+updated 2026-10-21
+v P_NAME	Onoff
+v P_TAG	onoff
+v P_REPO	
+v P_DESC	간호사 듀티(근무표) 앱
+v P_TODAY	2026-10-21
+v P_DESIGN	https://claude.ai/design/p/0397bbf3-8476-4802-8de8-86d2e42bc216
+v P_SPEC	
+v P_GIT_STRATEGY	github-flow
+v P_BASE	main
+v P_RELEASE	main
+v P_TYPES	feat fix docs chore
+v P_ISSUE	1
+v P_ISSUE_STYLE	github
+v P_BRANCH_REGEX	
+v P_DIRECT	0
+v P_LANG	ko
+v P_COMMIT_STYLE	conventional
+v P_COMMIT_TYPES	feat fix docs refactor test chore ci perf style build revert
+v P_COMMIT_SCOPE	optional
+v P_COMMIT_TOOL	
+v P_CI	main
+v P_CONV	| 항목 | 규칙 | 예 |\n|---|---|---|\n| 브랜치 | `<type>/<이슈번호>-<slug>` — type: feat · fix · docs · chore. hotfix · release는 `main`에서 | `feat/12-login-form` |\n| 커밋 | Conventional Commits `<type>[(<scope>)]: <요약>` — type: feat · fix · docs · refactor · test · chore · ci · perf · style · build · revert, 요약은 한국어, 72자 이내, 마침표 없음. 꼬리말 `Refs #N` · AI가 함께 쓴 커밋은 `Co-Authored-By:` | `feat(auth): 로그인 화면 추가` |\n\n근거: 새 저장소 — 기본값(추천). 값은 `.claude/project.sh`, 바꾸려면 `/project-setup`.

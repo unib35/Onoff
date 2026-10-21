@@ -1,0 +1,30 @@
+name: 기능
+description: 새 기능 · 화면 · 개선
+title: "<기능 · 화면 이름>"
+labels: ["feat"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 무엇을 · 왜
+      description: 한두 문장. 사용자 입장에서 무엇이 달라지는지
+    validations:
+      required: true
+  - type: input
+    id: refs
+    attributes:
+      label: 연결 ID
+      description: 요구사항 · 화면 · 결정 (예 REQ-012 · UI-IOS-3a · DEC-004)
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 기준
+      description: 체크 목록. 테스트로 확인할 것 포함
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 범위 밖 · 메모
