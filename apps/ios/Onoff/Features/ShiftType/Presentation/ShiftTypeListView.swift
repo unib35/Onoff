@@ -9,6 +9,9 @@ struct ShiftTypeListView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 navigationBar
+                if case .failed = viewModel.state {
+                    LoadFailedView { Task { await viewModel.load() } }
+                }
                 if case let .loaded(list) = viewModel.state {
                     HStack {
                         Text("키패드에 보이는 근무 · \(list.visible.count)").onoffText(13, .bold)
@@ -34,7 +37,7 @@ struct ShiftTypeListView: View {
                     // 새 근무 만들기(5c)는 다음 이슈
                     Text("+ 새 근무 만들기")
                         .onoffText(15, .bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(OnoffColor.onInk)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
                         .background(OnoffColor.ink, in: RoundedRectangle(cornerRadius: 16))

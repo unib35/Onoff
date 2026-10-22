@@ -56,7 +56,7 @@ struct FloatingTabBar: View {
                             .frame(width: 22, height: 22)
                         Text(item.title).onoffText(12, selected ? .bold : .semibold)
                     }
-                    .foregroundStyle(selected ? Color.white : OnoffColor.textSecondary)
+                    .foregroundStyle(selected ? OnoffColor.onInk : OnoffColor.textSecondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background {
                         if selected { RoundedRectangle(cornerRadius: 26).fill(OnoffColor.ink) }

@@ -36,6 +36,9 @@ enum ShiftFormat {
     /// 「10/7 (수)」
     static func shortDate(_ day: CalendarDay) -> String { "\(day.month)/\(day.day) (\(weekday(day)))" }
 
+    /// 「~7:30」 — 전날 근무가 이어지는 아침(1f)
+    static func carry(_ end: TimeOfDay) -> String { "~\(end.hour):" + String(format: "%02d", end.minute) }
+
     /// 「4시간 49분」
     static func remaining(_ minutes: Int) -> String { DurationText.hoursMinutes(minutes) }
 }

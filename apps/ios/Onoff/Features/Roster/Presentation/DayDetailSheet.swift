@@ -14,6 +14,9 @@ struct DayDetailSheet: View {
             Text(ShiftFormat.titleDate(viewModel.day)).onoffText(24, .bold)
             // 「10/8 변경됨 · 이력」 배지는 변경 이력(1l) 이슈에서
 
+            if case .failed = viewModel.state {
+                LoadFailedView { Task { await viewModel.load() } }
+            }
             if case let .loaded(detail) = viewModel.state {
                 shiftRow(detail.duty)
                 band(detail)

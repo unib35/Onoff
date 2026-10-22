@@ -7,6 +7,10 @@ struct MonthlyRosterView: View {
 
     var body: some View {
         ScrollView {
+            if case .failed = viewModel.state {
+                LoadFailedView { Task { await viewModel.loadCurrentMonth() } }
+                    .padding(.horizontal, OnoffSpace.xl)
+            }
             if case let .loaded(roster) = viewModel.state {
                 VStack(alignment: .leading, spacing: 12) {
                     header(roster)
@@ -86,7 +90,7 @@ private struct MonthGrid: View {
             legend
         }
         .padding(EdgeInsets(top: 12, leading: 8, bottom: 8, trailing: 8))
-        .background(OnoffColor.card, in: RoundedRectangle(cornerRadius: 22))
+        .background(OnoffColor.card, in: RoundedRectangle(cornerRadius: OnoffRadius.panel))
     }
 
     private var legend: some View {
@@ -95,9 +99,11 @@ private struct MonthGrid: View {
                 Circle().fill(OnoffColor.ink).frame(width: 6, height: 6)
                 Text("개인 일정")
             }
-            HStack(spacing: 5) {
-                Text("~7:30").fontWeight(.bold).foregroundStyle(ShiftPalette.colors(for: "N").background)
-                Text("전날 나이트가 이어짐")
+            if let legend = roster.carryLegend {
+                HStack(spacing: 5) {
+                    Text(ShiftFormat.carry(legend.end)).fontWeight(.bold).foregroundStyle(ShiftPalette.colors(for: legend.colorKey).background)
+                    Text("전날 나이트가 이어짐")
+                }
             }
             Spacer()
         }
@@ -126,9 +132,9 @@ private struct DayCell: View {
                 UnregisteredPattern(cornerRadius: 7).frame(height: 22)
             }
             if let end = day.carryOverEnd {
-                Text("~\(end.hour):\(String(format: "%02d", end.minute))")
+                Text(ShiftFormat.carry(end))
                     .onoffText(12, .bold, numeric: true)
-                    .foregroundStyle(ShiftPalette.colors(for: "N").background)
+                    .foregroundStyle(ShiftPalette.colors(for: day.carryOverColorKey ?? "").background)
                     .frame(height: 12)
             }
             Spacer(minLength: 0)
@@ -138,8 +144,8 @@ private struct DayCell: View {
         .frame(maxWidth: .infinity)
         .background {
             if day.isToday {
-                RoundedRectangle(cornerRadius: 10).fill(OnoffColor.card)
-                RoundedRectangle(cornerRadius: 10).strokeBorder(OnoffColor.ink, lineWidth: 2)
+                RoundedRectangle(cornerRadius: OnoffRadius.cell).fill(OnoffColor.card)
+                RoundedRectangle(cornerRadius: OnoffRadius.cell).strokeBorder(OnoffColor.ink, lineWidth: 2)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -191,6 +197,6 @@ private struct NextMonthCard: View {
         .padding(.vertical, 14)
         .padding(.horizontal, OnoffSpace.xl)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OnoffColor.card, in: RoundedRectangle(cornerRadius: 22))
+        .background(OnoffColor.card, in: RoundedRectangle(cornerRadius: OnoffRadius.panel))
     }
 }

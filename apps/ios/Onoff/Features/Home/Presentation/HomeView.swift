@@ -9,6 +9,9 @@ struct HomeView: View {
         ScrollView {
             VStack(spacing: 10) {
                 header
+                if case .failed = viewModel.state {
+                    LoadFailedView { Task { await viewModel.load() } }
+                }
                 if case let .loaded(summary) = viewModel.state {
                     TodayCard(summary: summary)
                     HStack(spacing: 10) {
@@ -38,9 +41,9 @@ struct HomeView: View {
             Button(action: onProfile) {
                 Text(viewModel.profileInitial)
                     .onoffText(15, .bold)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(OnoffColor.onInk)
                     .frame(width: 38, height: 38)
-                    .background(ShiftPalette.colors(for: "N").background, in: Circle())
+                    .background(OnoffColor.avatar, in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("내 정보")
@@ -63,8 +66,7 @@ struct HomeView: View {
     private func nextOffCard(_ nextOff: HomeSummary.NextOff?) -> some View {
         SmallCard(title: nextOff.map { "다음 OFF · \($0.daysFromToday)일 후" } ?? "다음 OFF") {
             if let nextOff {
-                ShiftChip(code: "OFF", colorKey: "OFF", height: 26, cornerRadius: 8, fontSize: 12, horizontalPadding: 7)
-                    .fixedSize()
+                SmallShiftChip(type: nextOff.type)
                 Text(ShiftFormat.shortDate(nextOff.date)).onoffText(16, .bold)
             } else {
                 Text("근무표 미등록").onoffText(16, .bold)
@@ -93,6 +95,9 @@ private struct TodayCard: View {
                 Spacer()
                 if let minutes = summary.minutesUntilStart {
                     Text("출근까지 \(ShiftFormat.remaining(minutes))").onoffText(14, .semibold, numeric: true)
+                } else if let end = summary.workingUntil {
+                    // 근무 중 — 전날 N이 이어지는 아침 포함(REQ-007). 예정과 실제 구분(디자인 시스템 10)
+                    Text("퇴근 예정 \(DurationText.clock(end))").onoffText(14, .semibold, numeric: true)
                 }
             }
 
@@ -112,7 +117,7 @@ private struct TodayCard: View {
                     }
                 }
                 DayTimeBand(
-                    segments: ShiftTimeline.dayFractions(of: summary.today.state),
+                    segments: summary.todayBand,
                     trackColor: OnoffColor.card.opacity(0.4),
                     barColor: colors.foreground,
                     height: 24,
@@ -196,7 +201,7 @@ private struct WeekStrip: View {
                 .frame(maxWidth: .infinity)
                 .overlay {
                     if duty.date == today {
-                        RoundedRectangle(cornerRadius: 10).strokeBorder(OnoffColor.ink, lineWidth: 2)
+                        RoundedRectangle(cornerRadius: OnoffRadius.cell).strokeBorder(OnoffColor.ink, lineWidth: 2)
                     }
                 }
             }

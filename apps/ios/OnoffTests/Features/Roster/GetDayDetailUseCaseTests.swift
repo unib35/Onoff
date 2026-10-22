@@ -47,4 +47,14 @@ struct GetDayDetailUseCaseTests {
         #expect(detail.duty.state == .unregistered)
         #expect(detail.bandSegments.isEmpty)
     }
+
+    @Test("전날 N이 끝나는 07:30 정각은 겹치지 않는다")
+    func overlapBoundary() async throws {
+        let target = TestSupport.day(2026, 10, 11)
+        let detail = try await useCase(memos: [
+            Memo(id: UUID(), date: target, time: TimeOfDay(hour: 7, minute: 29), text: "직전"),
+            Memo(id: UUID(), date: target, time: TimeOfDay(hour: 7, minute: 30), text: "정각"),
+        ])(target)
+        #expect(detail.memos.map(\.overlapsShift) == [true, false])
+    }
 }

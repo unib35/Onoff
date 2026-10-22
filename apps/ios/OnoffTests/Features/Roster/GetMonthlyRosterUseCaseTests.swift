@@ -54,4 +54,38 @@ struct GetMonthlyRosterUseCaseTests {
         #expect(november.days[1].duty.state == .unregistered)
         #expect(november.leadingBlanks == 0) // 11월 1일은 일요일
     }
+
+    @Test("N 다음 날이 미등록이어도 ~7:30, N 다음 N에는 없음 · 색은 전날 근무에서")
+    func carryOverOnUnregisteredAndNotOnWork() async throws {
+        var duties = SampleData.octoberDuties
+        duties[TestSupport.day(2026, 10, 31)] = ShiftTypeID(rawValue: "N")
+        let november = try await useCase(duties)(year: 2026, month: 11)
+        #expect(november.days[0].duty.state == .unregistered)
+        #expect(november.days[0].carryOverEnd == TimeOfDay(hour: 7, minute: 30))
+        #expect(november.days[0].carryOverColorKey == "N")
+
+        let october = try await useCase()(year: 2026, month: 10)
+        #expect(october.days[8].carryOverEnd == nil) // 10/9 N(전날도 N)
+    }
+
+    @Test("범례는 날짜를 넘는 근무 유형에서 — 없으면 숨김")
+    func carryLegend() async throws {
+        let roster = try await useCase()(year: 2026, month: 10)
+        #expect(roster.carryLegend == .init(end: TimeOfDay(hour: 7, minute: 30), colorKey: "N"))
+        let dayOnly = GetMonthlyRosterUseCase(
+            shiftTypes: InMemoryShiftTypeRepository([TestSupport.type("D")]),
+            loadDutyDays: TestSupport.loadDutyDays([:], types: [TestSupport.type("D")]),
+            memos: InMemoryMemoRepository([]), clock: TestSupport.referenceClock)
+        #expect(try await dayOnly(year: 2026, month: 10).carryLegend == nil)
+    }
+
+    @Test("연말: 12월 근무표의 다음 달은 다음 해 1월")
+    func yearBoundary() async throws {
+        let december = try await useCase()(year: 2026, month: 12)
+        #expect(december.leadingBlanks == 2) // 2026-12-01 화요일
+        #expect(december.days.count == 31)
+        #expect(december.nextMonth.month == 1)
+        #expect(december.nextMonth.days.count == 31)
+        #expect(december.nextMonth.days.first?.date == TestSupport.day(2027, 1, 1))
+    }
 }

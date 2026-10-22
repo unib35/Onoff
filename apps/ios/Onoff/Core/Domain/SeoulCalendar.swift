@@ -27,6 +27,11 @@ enum SeoulCalendar {
         startOfDay(day).addingTimeInterval(TimeInterval(time.minutes * 60))
     }
 
+    static func timeOfDay(of date: Date) -> TimeOfDay {
+        let c = calendar.dateComponents([.hour, .minute], from: date)
+        return TimeOfDay(hour: c.hour!, minute: c.minute!)
+    }
+
     static func adding(days: Int, to day: CalendarDay) -> CalendarDay {
         self.day(of: calendar.date(byAdding: .day, value: days, to: startOfDay(day))!)
     }

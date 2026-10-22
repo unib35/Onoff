@@ -22,6 +22,7 @@ enum OnoffColor {
     static let textSecondary = Color(hex: 0x4F4A43) // 보조 글자 · 4.5:1 이상
     static let line = Color(hex: 0xE4DFD5)         // 선 · 테두리
     static let canvas = Color(hex: 0xE9E5DD)       // 캔버스
+    static let onInk = Color(hex: 0xFFFFFF)        // 먹 바탕 위 글자(주 버튼 · 선택 탭)
 
     // 화면에서 쓰는 이름 없는 값(원본 캔버스) — 이름을 붙여 한 곳에 둔다
     static let textTertiary = Color(hex: 0x6E685F)  // 섹션 제목 · 연도
@@ -33,6 +34,7 @@ enum OnoffColor {
     static let trackBackground = Color(hex: 0xF0ECE4) // 24시간 띠 바탕
     static let sunday = Color(hex: 0xC2412D)        // 일요일 · 경고 빨강
     static let scrim = Color(hex: 0x8C867D)         // 시트 뒤 어둡게
+    static let avatar = Color(hex: 0x2E3A6E)        // 홈 프로필 동그라미(12a)
 
     // 미등록 빗금(OFF 아님)
     static let unregisteredFill = Color(hex: 0xF6F3ED)
@@ -61,6 +63,10 @@ enum OnoffRadius {
     static let button: CGFloat = 12
     static let card: CGFloat = 20
     static let sheet: CGFloat = 28
+    /// 근무표 판(1f 달력 · 다음 달 카드)
+    static let panel: CGFloat = 22
+    /// 달력 날짜 칸 · 이번 주 오늘 테두리
+    static let cell: CGFloat = 10
 }
 
 enum OnoffShadow {

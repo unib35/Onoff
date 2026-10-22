@@ -17,6 +17,19 @@ struct TimeOfDay: Hashable, Sendable, Codable, Comparable {
         minutes = hour * 60 + minute
     }
 
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(Int.self)
+        guard (0..<1440).contains(value) else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "0..<1440 밖의 시각: \(value)"))
+        }
+        minutes = value
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(minutes)
+    }
+
     var hour: Int { minutes / 60 }
     var minute: Int { minutes % 60 }
 
