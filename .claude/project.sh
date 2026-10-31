@@ -64,12 +64,20 @@ AREAS='
 #                   -destination "platform=iOS Simulator,name=${SIM:-iPhone 17}" -parallel-testing-enabled NO; }
 # verify_api()  { (cd server && go test ./...); }
 #
-# 이 프로젝트 — 앱 코드가 아직 없어 verify_ios · verify_android는 정의하지 않는다(SKIP으로 보고).
-# 프로젝트 뼈대 이슈에서 실제 프로젝트 이름 · 스킴에 맞춰 주석을 풀고 고친다.
-# verify_ios()     { xcodebuild test -quiet -project apps/ios/Onoff.xcodeproj -scheme Onoff \
-#                      -destination "platform=iOS Simulator,name=${SIM:-iPhone 17}" -parallel-testing-enabled NO; }
+# iOS — XcodeGen으로 프로젝트를 만든 뒤 단위 테스트(DEC-010). 시뮬레이터는 SIM으로 바꾼다.
+# 기본은 이 프로젝트 전용 「Onoff iPhone 17」(다른 앱이 쓰는 시뮬레이터를 건드리지 않게), 없으면 「iPhone 17」.
+verify_ios() {
+  sim=${SIM:-}
+  if [ -z "$sim" ]; then
+    if xcrun simctl list devices available | grep -q "Onoff iPhone 17 ("; then sim="Onoff iPhone 17"; else sim="iPhone 17"; fi
+  fi
+  (cd apps/ios && xcodegen generate --quiet && xcodebuild test -quiet -project Onoff.xcodeproj -scheme Onoff \
+    -destination "platform=iOS Simulator,name=$sim" -parallel-testing-enabled NO \
+    -derivedDataPath "${TMPDIR:-/tmp}/onoff-ios-dd")
+}
+# Android — 코드가 아직 없어 정의하지 않는다(SKIP으로 보고). Android 뼈대 이슈에서 주석을 푼다.
 # verify_android() { (cd apps/android && ./gradlew --quiet testDebugUnitTest); }
-# verify_shared()  { for f in apps/shared/fixtures/*.json; do [ -f "$f" ] || continue; jq empty "$f" || return 1; done; }
+verify_shared()  { for f in apps/shared/fixtures/*.json; do [ -f "$f" ] || continue; jq empty "$f" || return 1; done; }
 
 # 아키텍처 검사 — 프리셋 clean-apple-swiftui · clean-android-compose (DEC-004). docs/conventions/architecture.md
 # check.sh가 코드 영역을 찾으면 verify.sh <영역> arch 로 함께 돌린다. 코드가 없으면 통과.

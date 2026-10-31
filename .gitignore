@@ -25,3 +25,7 @@ dist/
 
 # Claude Code worktree (에이전트 · -w)
 .claude/worktrees/
+
+# iOS — XcodeGen 생성물(DEC-010). 원본은 apps/ios/project.yml
+apps/ios/*.xcodeproj/
+apps/ios/Supporting/Info.plist

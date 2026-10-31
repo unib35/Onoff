@@ -1,0 +1,65 @@
+{
+  "description": "근무 시각 계산 — 근무는 시작한 날에 속하고 종료가 시작보다 이르거나 같으면 다음 날 종료(DEC-006 · REQ-007). iOS · Android Domain 테스트가 같이 읽는다. 시각은 모두 Asia/Seoul.",
+  "cases": [
+    {
+      "name": "N은 다음 날 07:30까지",
+      "date": "2026-10-08",
+      "segments": [["22:30", "07:30"]],
+      "expect": {
+        "intervals": [["2026-10-08T22:30", "2026-10-09T07:30"]],
+        "carryOverEndIntoNextDay": "07:30",
+        "workMinutes": 540
+      }
+    },
+    {
+      "name": "월말 N은 다음 달 1일 아침까지",
+      "date": "2026-10-31",
+      "segments": [["22:30", "07:30"]],
+      "expect": {
+        "intervals": [["2026-10-31T22:30", "2026-11-01T07:30"]],
+        "carryOverEndIntoNextDay": "07:30",
+        "workMinutes": 540
+      }
+    },
+    {
+      "name": "연말 N은 다음 해 1월 1일 아침까지",
+      "date": "2026-12-31",
+      "segments": [["22:30", "07:30"]],
+      "expect": {
+        "intervals": [["2026-12-31T22:30", "2027-01-01T07:30"]],
+        "carryOverEndIntoNextDay": "07:30",
+        "workMinutes": 540
+      }
+    },
+    {
+      "name": "D는 날짜를 넘지 않음",
+      "date": "2026-10-01",
+      "segments": [["07:00", "15:30"]],
+      "expect": {
+        "intervals": [["2026-10-01T07:00", "2026-10-01T15:30"]],
+        "carryOverEndIntoNextDay": null,
+        "workMinutes": 510
+      }
+    },
+    {
+      "name": "스플릿은 구간 두 개",
+      "date": "2026-10-02",
+      "segments": [["07:00", "11:00"], ["17:00", "21:00"]],
+      "expect": {
+        "intervals": [["2026-10-02T07:00", "2026-10-02T11:00"], ["2026-10-02T17:00", "2026-10-02T21:00"]],
+        "carryOverEndIntoNextDay": null,
+        "workMinutes": 480
+      }
+    },
+    {
+      "name": "종일(OFF · 연차)은 구간 없음",
+      "date": "2026-10-03",
+      "segments": [],
+      "expect": {
+        "intervals": [],
+        "carryOverEndIntoNextDay": null,
+        "workMinutes": 0
+      }
+    }
+  ]
+}

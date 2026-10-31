@@ -16,7 +16,7 @@ apps/android/app/src/main/java/<pkg>/features/<feature>/{presentation,domain,dat
 apps/android/app/src/test/java/<pkg>/features/<feature>/
 apps/shared/fixtures/<규칙>.json        두 플랫폼 Domain 테스트가 같이 읽는 테스트 표
 ```
-아직 코드가 없다. 첫 뼈대 이슈에서 위 경로로 만든다. `<pkg>`는 미결정.
+iOS는 이슈 #3에서 위 경로로 만들었다(`apps/ios/project.yml` → `xcodegen generate`, `.xcodeproj`는 커밋 안 함 — DEC-010). Android는 아직 없다. `<pkg>`는 미결정.
 - 공통 컴포넌트 · 설정은 한 곳에 두고 「공통 파일」로 취급한다(`docs/conventions/agents.md`).
 
 ## 이름
@@ -53,7 +53,7 @@ apps/shared/fixtures/<규칙>.json        두 플랫폼 Domain 테스트가 같�
 
 | 대상 | 최소 기준 | 명령 (`.claude/project.sh` verify_<영역>) |
 |---|---|---|
-| iOS Domain · ViewModel | 규칙마다 단위 테스트, 공유 테스트 표 통과 | `verify_ios` — 미실행(코드 없음, 뼈대 이슈에서 추가) |
+| iOS Domain · ViewModel | 규칙마다 단위 테스트(Swift Testing), 공유 테스트 표 통과 | `verify_ios` — XcodeGen 생성 후 `xcodebuild test` (시뮬레이터 `SIM`, 기본 「Onoff iPhone 17」) |
 | Android Domain · ViewModel | 같음 | `verify_android` — 미실행(코드 없음, 뼈대 이슈에서 추가) |
 | 알람 실제 동작 | 1.0 출시 조건(REQ-036)을 기기에서 수동 확인, 결과를 PR에 붙임 | 수동 |
 | 아키텍처 | 의존 방향 grep | `verify_arch` |

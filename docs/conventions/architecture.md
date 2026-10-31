@@ -42,7 +42,7 @@ Repository (데이터 접근 추상화)
 
 ```text
 apps/ios/
-├── Onoff.xcodeproj                    (공통 파일)
+├── project.yml                        XcodeGen 정의 (공통 파일 · .xcodeproj는 생성물 — DEC-010)
 ├── Onoff/
 │   ├── App/                           진입점 · AppContainer(DI) · AppRouter · AppRoute   (공통 파일)
 │   ├── Core/

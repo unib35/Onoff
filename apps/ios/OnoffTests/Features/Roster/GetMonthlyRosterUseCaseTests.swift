@@ -1,0 +1,91 @@
+// REQ-007 · REQ-008 · REQ-017 · UI-IOS-1f — 원본 1f 샘플 값과 같아야 한다
+import Testing
+@testable import Onoff
+
+struct GetMonthlyRosterUseCaseTests {
+    private func useCase(_ duties: [CalendarDay: ShiftTypeID] = SampleData.octoberDuties) -> GetMonthlyRosterUseCase {
+        GetMonthlyRosterUseCase(
+            shiftTypes: InMemoryShiftTypeRepository(SampleData.shiftTypes),
+            loadDutyDays: TestSupport.loadDutyDays(duties),
+            memos: InMemoryMemoRepository(SampleData.memos),
+            clock: TestSupport.referenceClock
+        )
+    }
+
+    @Test("10월 예정 · D 8 · E 6 · N 7 · OFF 10 · 182시간")
+    func octoberSummary() async throws {
+        let roster = try await useCase()(year: 2026, month: 10)
+        #expect(roster.counts.map { "\($0.type.code) \($0.count)" } == ["D 8", "E 6", "N 7", "OFF 10"])
+        #expect(roster.workMinutes == 182 * 60)
+        #expect(roster.leadingBlanks == 4) // 10월 1일은 목요일
+        #expect(roster.days.count == 31)
+    }
+
+    @Test("전날 N 다음 OFF에만 ~7:30")
+    func carryOverOnlyAfterNight() async throws {
+        let roster = try await useCase()(year: 2026, month: 10)
+        let carried = roster.days.filter { $0.carryOverEnd != nil }.map(\.duty.date.day)
+        #expect(carried == [11, 15, 29])
+        #expect(roster.days.first { $0.duty.date.day == 11 }?.carryOverEnd == TimeOfDay(hour: 7, minute: 30))
+    }
+
+    @Test("오늘 · 메모 표시")
+    func todayAndMemo() async throws {
+        let roster = try await useCase()(year: 2026, month: 10)
+        #expect(roster.days.filter(\.isToday).map(\.duty.date.day) == [4])
+        #expect(roster.days.filter(\.hasMemo).map(\.duty.date.day) == [6, 7, 12, 17])
+    }
+
+    @Test("11월은 전부 미등록 — OFF로 세지 않는다")
+    func nextMonthUnregistered() async throws {
+        let roster = try await useCase()(year: 2026, month: 10)
+        #expect(roster.nextMonth.month == 11)
+        #expect(roster.nextMonth.days.count == 30)
+        #expect(roster.nextMonth.isAllUnregistered)
+    }
+
+    @Test("월 경계: 10/31 N이면 11/1 OFF에 ~7:30")
+    func carryOverAcrossMonth() async throws {
+        var duties = SampleData.octoberDuties
+        duties[TestSupport.day(2026, 10, 31)] = ShiftTypeID(rawValue: "N")
+        duties[TestSupport.day(2026, 11, 1)] = ShiftTypeID(rawValue: "OFF")
+        let november = try await useCase(duties)(year: 2026, month: 11)
+        #expect(november.days.first?.carryOverEnd == TimeOfDay(hour: 7, minute: 30))
+        #expect(november.days[1].duty.state == .unregistered)
+        #expect(november.leadingBlanks == 0) // 11월 1일은 일요일
+    }
+
+    @Test("N 다음 날이 미등록이어도 ~7:30, N 다음 N에는 없음 · 색은 전날 근무에서")
+    func carryOverOnUnregisteredAndNotOnWork() async throws {
+        var duties = SampleData.octoberDuties
+        duties[TestSupport.day(2026, 10, 31)] = ShiftTypeID(rawValue: "N")
+        let november = try await useCase(duties)(year: 2026, month: 11)
+        #expect(november.days[0].duty.state == .unregistered)
+        #expect(november.days[0].carryOverEnd == TimeOfDay(hour: 7, minute: 30))
+        #expect(november.days[0].carryOverColorKey == "N")
+
+        let october = try await useCase()(year: 2026, month: 10)
+        #expect(october.days[8].carryOverEnd == nil) // 10/9 N(전날도 N)
+    }
+
+    @Test("범례는 날짜를 넘는 근무 유형에서 — 없으면 숨김")
+    func carryLegend() async throws {
+        let roster = try await useCase()(year: 2026, month: 10)
+        #expect(roster.carryLegend == .init(end: TimeOfDay(hour: 7, minute: 30), colorKey: "N"))
+        let dayOnly = GetMonthlyRosterUseCase(
+            shiftTypes: InMemoryShiftTypeRepository([TestSupport.type("D")]),
+            loadDutyDays: TestSupport.loadDutyDays([:], types: [TestSupport.type("D")]),
+            memos: InMemoryMemoRepository([]), clock: TestSupport.referenceClock)
+        #expect(try await dayOnly(year: 2026, month: 10).carryLegend == nil)
+    }
+
+    @Test("연말: 12월 근무표의 다음 달은 다음 해 1월")
+    func yearBoundary() async throws {
+        let december = try await useCase()(year: 2026, month: 12)
+        #expect(december.leadingBlanks == 2) // 2026-12-01 화요일
+        #expect(december.days.count == 31)
+        #expect(december.nextMonth.month == 1)
+        #expect(december.nextMonth.days.count == 31)
+        #expect(december.nextMonth.days.first?.date == TestSupport.day(2027, 1, 1))
+    }
+}
