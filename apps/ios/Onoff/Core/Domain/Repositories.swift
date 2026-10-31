@@ -28,6 +28,7 @@ extension DutyRepository {
 }
 
 /// 저장할 근무 변경. 지운 날(`cleared`)은 미등록이 된다 — OFF가 아니다(REQ-008).
+/// 같은 날이 양쪽에 있으면 `assigned`가 이긴다(모든 구현이 같게).
 struct DutyChanges: Hashable, Sendable {
     var assigned: [CalendarDay: ShiftTypeID] = [:]
     var cleared: Set<CalendarDay> = []

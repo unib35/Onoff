@@ -142,7 +142,11 @@ struct ShiftInputUseCaseTests {
         session.draft.enter(id("E"))
         session.draft.moveCursor(to: day("2026-10-31"))
         session.draft.erase()
-        #expect(try await ApplyShiftInputUseCase(duties: duties)(session.draft) == 2)
+        let result = try await ApplyShiftInputUseCase(duties: duties)(session.draft)
+        #expect(result.savedDays == 2)
+        #expect(result.draft.changes.isEmpty) // 저장한 값이 새 기준
+        #expect(!result.draft.canUndo)
+        #expect(result.draft.shift(on: day("2026-10-12")) == id("E"))
 
         let saved = try await duties.assignments(from: day("2026-10-01"), through: day("2026-10-31"))
         #expect(saved[day("2026-10-12")] == id("E"))
@@ -157,7 +161,20 @@ struct ShiftInputUseCaseTests {
         let (types, duties) = repositories()
         let session = try await StartShiftInputUseCase(shiftTypes: types, duties: duties)(
             range: StartShiftInputUseCase.month(year: 2026, month: 11))
-        #expect(try await ApplyShiftInputUseCase(duties: duties)(session.draft) == 0)
+        #expect(try await ApplyShiftInputUseCase(duties: duties)(session.draft).savedDays == 0)
+    }
+
+    @Test("적용한 뒤 이어서 고치면 그 뒤에 바꾼 날만 저장한다")
+    func applyAgain() async throws {
+        let (types, duties) = repositories([:])
+        var session = try await StartShiftInputUseCase(shiftTypes: types, duties: duties)(
+            range: StartShiftInputUseCase.month(year: 2026, month: 10))
+        session.draft.enter(id("D"))
+        let apply = ApplyShiftInputUseCase(duties: duties)
+        var draft = try await apply(session.draft).draft
+        draft.enter(id("E"))
+        #expect(draft.changes == DutyChanges(assigned: [day("2026-10-02"): id("E")]))
+        #expect(try await apply(draft).savedDays == 1)
     }
 
     @Test("기기 저장소: 넣기와 지우기가 한 번에 저장된다")
@@ -168,5 +185,15 @@ struct ShiftInputUseCaseTests {
                                                cleared: [day("2026-10-01")]))
         #expect(try await repository.assignments(from: day("2026-10-01"), through: day("2026-10-31"))
                 == [day("2026-10-02"): id("N"), day("2026-10-03"): id("OFF")])
+    }
+
+    @Test("같은 날이 넣기와 지우기에 둘 다 있으면 넣기가 이긴다 — 두 구현이 같다", arguments: [false, true])
+    func assignedWins(live: Bool) async throws {
+        let repository: any DutyRepository = live
+            ? LiveDutyRepository(modelContainer: try LocalStore.makeInMemoryContainer())
+            : InMemoryDutyRepository([:])
+        try await repository.assign([day("2026-10-01"): id("D")])
+        try await repository.apply(DutyChanges(assigned: [day("2026-10-01"): id("N")], cleared: [day("2026-10-01")]))
+        #expect(try await repository.assignments(from: day("2026-10-01"), through: day("2026-10-01")) == [day("2026-10-01"): id("N")])
     }
 }

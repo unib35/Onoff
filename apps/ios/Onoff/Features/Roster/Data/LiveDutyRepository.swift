@@ -25,7 +25,12 @@ actor LiveDutyRepository: DutyRepository {
                 modelContext.insert(StoredDuty(day: day, shiftTypeID: typeID))
             }
         }
-        try modelContext.save() // 한 번에 저장 — 일부만 남지 않는다
+        do {
+            try modelContext.save() // 한 번에 저장 — 일부만 남지 않는다
+        } catch {
+            modelContext.rollback() // 실패한 변경이 다음 저장에 섞여 들어가지 않게
+            throw error
+        }
     }
 
     private func stored(from lower: Int, through upper: Int) throws -> [StoredDuty] {

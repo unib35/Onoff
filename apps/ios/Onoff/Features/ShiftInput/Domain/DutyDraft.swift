@@ -85,12 +85,14 @@ struct DutyDraft: Hashable, Sendable {
     /// `pattern`을 `from`부터 날마다 차례로 반복한다. 휴가가 이미 들어 있는 날은 건너뛰되 순서는 날짜 기준으로 계속 간다
     /// (휴가가 끼어도 뒤 순서가 밀리지 않는다). 기간 밖은 건드리지 않는다.
     mutating func repeatPattern(_ pattern: [ShiftTypeID], from start: CalendarDay, through end: CalendarDay) {
-        guard !pattern.isEmpty, start <= end else { return }
+        // 기간과 겹치는 날만 돈다. 순서 번호는 `from`부터 센다(기간 앞에서 시작해도 날짜 기준으로 맞물림).
+        let lower = max(start, range.lowerBound), upper = min(end, range.upperBound)
+        guard !pattern.isEmpty, lower <= upper else { return }
         var updates: [CalendarDay: ShiftTypeID] = [:]
-        var day = start
-        var index = 0
-        while day <= end {
-            if range.contains(day), !isProtected(day), current[day] != pattern[index % pattern.count] {
+        var day = lower
+        var index = SeoulCalendar.daysBetween(start, lower)
+        while day <= upper {
+            if !isProtected(day), current[day] != pattern[index % pattern.count] {
                 updates[day] = pattern[index % pattern.count]
             }
             day = SeoulCalendar.adding(days: 1, to: day)
@@ -99,6 +101,16 @@ struct DutyDraft: Hashable, Sendable {
         guard !updates.isEmpty else { return }
         record(Array(updates.keys))
         current.merge(updates) { _, new in new }
+    }
+
+    // MARK: - 적용
+
+    /// 저장에 성공한 뒤의 초안 — 지금 값이 새 기준이 되고 되돌리기는 비운다. 커서는 그대로.
+    /// 적용한 것을 되돌리기(1l 변경 이력)는 그 이슈에서 이 위에 붙인다.
+    func applied() -> DutyDraft {
+        var next = DutyDraft(range: range, original: current, protectedTypes: protectedTypes, cursor: cursor)
+        next.history = []
+        return next
     }
 
     // MARK: - 되돌리기
