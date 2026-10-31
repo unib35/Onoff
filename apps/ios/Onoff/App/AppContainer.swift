@@ -1,5 +1,6 @@
-// DI 조립 — Live/InMemory 구현을 이 한 곳에서 만든다(architecture.md). 지금은 저장소가 없어 InMemory + 샘플 데이터.
+// DI 조립 — Live/InMemory 구현을 이 한 곳에서 만든다(architecture.md). 실제 앱 = 기기 저장소(DEC-013), 미리보기 · 화면 확인 = 샘플.
 import Foundation
+import SwiftData
 
 @MainActor
 final class AppContainer {
@@ -25,6 +26,19 @@ final class AppContainer {
         self.duties = duties
         self.memos = memos
         self.profileInitial = profileInitial
+    }
+
+    /// 실제 앱 — 기기 저장소. 처음 실행이면 기본 근무 유형만 넣고 근무표 · 메모는 비워 둔다(전부 미등록, REQ-008)
+    static func live(store: ModelContainer) throws -> AppContainer {
+        try LiveShiftTypeRepository.seedIfEmpty(store, defaults: DefaultShiftTypes.all)
+        return AppContainer(
+            features: .mvp,
+            clock: SystemClock(),
+            shiftTypes: LiveShiftTypeRepository(modelContainer: store),
+            duties: LiveDutyRepository(modelContainer: store),
+            memos: LiveMemoRepository(modelContainer: store),
+            profileInitial: "" // 계정(15e) 전에는 빈 동그라미
+        )
     }
 
     /// 원본 캔버스와 같은 화면 — 기준 시각 2026-10-04 09:41 고정

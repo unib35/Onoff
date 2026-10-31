@@ -5,6 +5,7 @@ import Testing
 private struct FailingShiftTypeRepository: ShiftTypeRepository {
     struct Failure: Error {}
     func shiftTypes() async throws -> [ShiftType] { throw Failure() }
+    func replaceAll(_ types: [ShiftType]) async throws { throw Failure() }
 }
 
 @MainActor

@@ -136,7 +136,7 @@ View
 ## 운영 원칙
 
 - 모든 에이전트는 이 문서와 기존 코드를 먼저 확인하고, **기존 패턴을 먼저 재사용**한다.
-- 새 아키텍처 · 라이브러리를 임의로 들이지 않는다(필요하면 멈추고 DEC 초안으로 묻는다). 아직 정하지 않은 것: 로컬 저장소 라이브러리 · 최소 OS 버전 · Android DI(기본은 수동 `AppContainer`) — `AGENTS.md` 미결정.
+- 새 아키텍처 · 라이브러리를 임의로 들이지 않는다(필요하면 멈추고 DEC 초안으로 묻는다). 로컬 저장소는 DEC-013(iOS SwiftData · Android Room). 아직 정하지 않은 것: Android minSdk · Android DI(기본은 수동 `AppContainer`) — `AGENTS.md` 미결정.
 - 병렬은 **소유 경로가 겹치지 않을 때만**. 한 기능을 나눌 때 순서: ① domain-agent가 Entity · UseCase · Repository 인터페이스 · 테스트 표를 먼저 커밋(계약) → ② feature-agent · data-agent가 그 계약에 맞춰 병렬 → ③ 오케스트레이터가 DI · Route 조립.
 - 모델: 단순 화면 · 데이터 연결은 sonnet, 복잡한 Domain(알람 계획 · 날짜 넘김) · State Machine · 리뷰는 opus, 조회는 haiku.
 
