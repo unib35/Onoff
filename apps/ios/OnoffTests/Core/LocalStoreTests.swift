@@ -97,4 +97,24 @@ struct LocalStoreTests {
         #expect(try await second.memos.memos(from: day(2026, 10, 7), through: day(2026, 10, 7)) == [memo])
         #expect(try await second.shiftTypes.shiftTypes().count == 11) // 다시 넣지 않음
     }
+
+    @Test("메모 날짜를 바꿔 저장하면 원래 날에서 빠지고 새 날에 나온다")
+    func memoMovesDay() async throws {
+        let repository = LiveMemoRepository(modelContainer: try LocalStore.makeInMemoryContainer())
+        let memo = Memo(id: UUID(), date: day(2026, 10, 6), time: nil, text: "가짜 메모")
+        try await repository.save(memo)
+        let moved = Memo(id: memo.id, date: day(2026, 10, 8), time: TimeOfDay(hour: 9), text: memo.text)
+        try await repository.save(moved)
+        #expect(try await repository.memos(from: day(2026, 10, 6), through: day(2026, 10, 6)).isEmpty)
+        #expect(try await repository.memos(from: day(2026, 10, 8), through: day(2026, 10, 8)) == [moved])
+    }
+
+    @Test("지운 근무 유형을 가리키던 날은 미등록 — OFF로 보이지 않는다")
+    func removedTypeBecomesUnregistered() async throws {
+        let container = try await AppContainer.live(store: LocalStore.makeInMemoryContainer())
+        try await container.duties.assign([day(2026, 10, 9): ShiftTypeID(rawValue: "M")])
+        try await container.shiftTypes.replaceAll(DefaultShiftTypes.all.filter { $0.id.rawValue != "M" })
+        let days = try await container.loadDutyDays(from: day(2026, 10, 9), through: day(2026, 10, 9))
+        #expect(days.first?.state == .unregistered)
+    }
 }

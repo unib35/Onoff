@@ -44,10 +44,11 @@ Repository (데이터 접근 추상화)
 apps/ios/
 ├── project.yml                        XcodeGen 정의 (공통 파일 · .xcodeproj는 생성물 — DEC-010)
 ├── Onoff/
-│   ├── App/                           진입점 · AppContainer(DI) · AppRouter · AppRoute   (공통 파일)
+│   ├── App/                           진입점 · AppContainer(DI) · LocalStore(저장소 조립) · AppRouter · AppRoute (공통 파일)
 │   ├── Core/
 │   │   ├── DesignSystem/              토큰 · 공통 컴포넌트(근무 칩 · 시간 띠 · 토스트)     (공통 파일)
-│   │   └── Domain/                    여러 기능이 같이 쓰는 Entity · Repository 인터페이스 (공유 도메인)
+│   │   ├── Domain/                    여러 기능이 같이 쓰는 Entity · Repository 인터페이스 (공유 도메인)
+│   │   └── Data/                      여러 기능의 Data가 같이 쓰는 저장소 도움 코드(날짜 키 · 저장소 오류)
 │   └── Features/<Feature>/
 │       ├── Presentation/              <Screen>View · <Screen>ViewModel · <Feature>Route
 │       ├── Domain/                    UseCase · Entity · State Machine · Repository 인터페이스
@@ -149,7 +150,7 @@ View
 | View | SwiftUI `View`. 상태는 ViewModel에서 받고, 사용자 행동은 ViewModel 메서드 호출 |
 | ViewModel | `@MainActor @Observable final class <Screen>ViewModel` — UseCase를 생성자 주입. 화면 상태(`state`)와 행동 메서드만 |
 | UseCase | `struct` 또는 `final class`, `func callAsFunction(...) async throws -> T` 또는 이름 있는 메서드. SwiftUI · UIKit · 네트워킹 · AlarmKit · WidgetKit import 금지 |
-| Repository | Domain: `protocol <Name>Repository: Sendable`. Data: `final class Live<Name>Repository` · 테스트: `InMemory<Name>Repository` |
+| Repository | Domain: `protocol <Name>Repository: Sendable`. Data: `@ModelActor actor Live<Name>Repository`(SwiftData — DEC-013) · 미리보기 · 테스트: `actor InMemory<Name>Repository` |
 | DI | `App/AppContainer.swift` 하나에서 Live 구현 조립, `@Environment`로 내려준다. 프리뷰 · 테스트는 InMemory 구현 |
 | Router | `@MainActor @Observable final class AppRouter` + `NavigationStack(path:)`. `enum AppRoute: Hashable { case roster(RosterRoute) … }`, 기능별 `enum <F>Route: Hashable` + `@ViewBuilder func view(router:)` |
 | State Machine | `enum <Name>State` + `func transition(_ event:) throws -> <Name>State` — 허용 안 되는 전이는 오류 |
