@@ -11,10 +11,29 @@ protocol ShiftTypeRepository: Sendable {
 protocol DutyRepository: Sendable {
     /// 넣지 않은 날은 결과에 없다 — 호출하는 쪽이 미등록으로 본다
     func assignments(from: CalendarDay, through: CalendarDay) async throws -> [CalendarDay: ShiftTypeID]
+    /// 넣기 · 바꾸기 · 지우기를 한 번에 저장한다 — 일부만 저장되지 않게(REQ-009 한 번에 적용)
+    func apply(_ changes: DutyChanges) async throws
+}
+
+extension DutyRepository {
     /// 날짜별 근무를 넣거나 바꾼다
-    func assign(_ assignments: [CalendarDay: ShiftTypeID]) async throws
+    func assign(_ assignments: [CalendarDay: ShiftTypeID]) async throws {
+        try await apply(DutyChanges(assigned: assignments))
+    }
+
     /// 그 날을 미등록으로 되돌린다 — OFF로 채우지 않는다(REQ-008)
-    func clear(_ days: [CalendarDay]) async throws
+    func clear(_ days: [CalendarDay]) async throws {
+        try await apply(DutyChanges(cleared: Set(days)))
+    }
+}
+
+/// 저장할 근무 변경. 지운 날(`cleared`)은 미등록이 된다 — OFF가 아니다(REQ-008).
+struct DutyChanges: Hashable, Sendable {
+    var assigned: [CalendarDay: ShiftTypeID] = [:]
+    var cleared: Set<CalendarDay> = []
+
+    var isEmpty: Bool { assigned.isEmpty && cleared.isEmpty }
+    var dayCount: Int { assigned.count + cleared.count }
 }
 
 struct Memo: Identifiable, Hashable, Sendable {
