@@ -15,8 +15,8 @@
 
 | 영역 | 스택 | 위치 |
 |---|---|---|
-| iOS 앱 | Swift · SwiftUI · WidgetKit · iOS 26+ · XcodeGen (DEC-002 · 008 · 010) | `apps/ios/` |
-| Android 앱 | Kotlin · Jetpack Compose (DEC-002) | `apps/android/` |
+| iOS 앱 | Swift · SwiftUI · SwiftData · WidgetKit · iOS 26+ · XcodeGen (DEC-002 · 008 · 010 · 013) | `apps/ios/` |
+| Android 앱 | Kotlin · Jetpack Compose · Room (DEC-002 · 013) | `apps/android/` |
 | 두 플랫폼 공유 테스트 표 | JSON | `apps/shared/fixtures/` |
 | 서버 | 미결정 — 지금은 기기 안 저장만 (DEC-003) | (나중에 `server/`) |
 | 작성자 웹 · 운영 콘솔 | 미결정 — 2.0 · 운영 시작 전 | (나중에 `apps/web/`) |
@@ -54,7 +54,7 @@
 
 - **서버** (Supabase · Firebase · 직접) — 1.0 출시 조건에 로그인 백업이 들어가 1.0 출시 전에 필요. 로그인 · 백업 · 계정 삭제 · 운영 콘솔(REQ-002 · 028 · 037) 착수 전 (DEC-003)
 - **iOS 시스템 알람 지원 범위** — 1.1 전에 확인. Android minSdk
-- **로컬 저장소 라이브러리** (iOS SwiftData · Core Data · SQLite / Android Room · DataStore), Android 패키지 이름, Android DI(기본 수동)
+- Android 패키지 이름, Android DI(기본 수동)
 - **디자인 토큰을 코드로 옮기는 방식** (손으로 · JSON에서 생성)
 - **병원 통계 공개 기준 20명 vs 10명** (1.4 전)
 - 야간 광고 알림 동의 · 약관 — 법률 검토

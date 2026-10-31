@@ -1,14 +1,20 @@
-// REQ-005 · REQ-008 · REQ-019 — 저장소 인터페이스. 구현은 각 기능의 Data(지금은 InMemory, 로컬 저장소는 다음 이슈)
+// REQ-005 · REQ-008 · REQ-019 · DEC-013 — 저장소 인터페이스. 구현은 각 기능의 Data(Live = SwiftData, InMemory = 미리보기 · 테스트)
 import Foundation
 
 protocol ShiftTypeRepository: Sendable {
     /// 목록 순서 = 키패드 순서(5b)
     func shiftTypes() async throws -> [ShiftType]
+    /// 목록 전체를 이 순서로 저장한다 — 빠진 유형은 지운다
+    func replaceAll(_ types: [ShiftType]) async throws
 }
 
 protocol DutyRepository: Sendable {
     /// 넣지 않은 날은 결과에 없다 — 호출하는 쪽이 미등록으로 본다
     func assignments(from: CalendarDay, through: CalendarDay) async throws -> [CalendarDay: ShiftTypeID]
+    /// 날짜별 근무를 넣거나 바꾼다
+    func assign(_ assignments: [CalendarDay: ShiftTypeID]) async throws
+    /// 그 날을 미등록으로 되돌린다 — OFF로 채우지 않는다(REQ-008)
+    func clear(_ days: [CalendarDay]) async throws
 }
 
 struct Memo: Identifiable, Hashable, Sendable {
@@ -22,4 +28,7 @@ struct Memo: Identifiable, Hashable, Sendable {
 
 protocol MemoRepository: Sendable {
     func memos(from: CalendarDay, through: CalendarDay) async throws -> [Memo]
+    /// 같은 id가 있으면 바꾸고, 없으면 넣는다
+    func save(_ memo: Memo) async throws
+    func delete(id: Memo.ID) async throws
 }

@@ -16,3 +16,4 @@
 | DEC-010 | 2026-10-21 | iOS 프로젝트 파일은 XcodeGen(`apps/ios/project.yml`)으로 만들고 `.xcodeproj`는 커밋하지 않는다 | 에이전트 여럿이 파일을 추가해도 프로젝트 파일 충돌이 없다. 이미 설치된 도구. 비교: 일반 Xcode 프로젝트 커밋 | code.md · project.sh |
 | DEC-011 | 2026-10-22 | 1.0 탭바는 홈 · 근무표 두 개. 공유는 1.2, 계획은 1.3에 추가 | 로드맵 2026-10-22 제안. 1.0엔 계획 · 공유에 넣을 화면이 없어 빈 탭이 생기지 않게. 비교: 처음부터 네 개 | REQ-039 · architecture.md |
 | DEC-012 | 2026-10-22 | 홈은 12a에서 알람 · 「확인할 일」을 뺀 버전(오늘 · 내일 · 다음 OFF · 이번 주). 1.1에서 알람 · 오늘의 순서를 켠다 | 로드맵 「MVP 전에 정할 것」 제안. 비교: 12b · 12c · 1a · 1b · 1c | REQ-016 · REQ-038 |
+| DEC-013 | 2026-10-31 | 기기 안 저장소는 iOS SwiftData(설정값은 UserDefaults), Android Room(설정값은 DataStore). Domain은 값 타입 그대로 두고 저장 모델은 각 기능 `Data` 안에서만 쓴다. iCloud 자동 동기화는 쓰지 않는다 | 두 플랫폼 공식 라이브러리라 새 의존성이 없고, iOS 26 전용이라 SwiftData 초기 문제를 피한다. 데이터가 작아(10년치 1–2MB) 용량 차이 없음. 서버 동기화는 Repository 뒤에서(DEC-003). 비교: Core Data(코드 2–3배) · SQLite GRDB(외부 라이브러리, 동기화가 복잡해지면 다시 검토) · DataStore만(날짜 범위 조회에 안 맞음) | AGENTS.md · architecture.md |

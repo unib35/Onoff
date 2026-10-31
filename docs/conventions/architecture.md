@@ -44,10 +44,11 @@ Repository (데이터 접근 추상화)
 apps/ios/
 ├── project.yml                        XcodeGen 정의 (공통 파일 · .xcodeproj는 생성물 — DEC-010)
 ├── Onoff/
-│   ├── App/                           진입점 · AppContainer(DI) · AppRouter · AppRoute   (공통 파일)
+│   ├── App/                           진입점 · AppContainer(DI) · LocalStore(저장소 조립) · AppRouter · AppRoute (공통 파일)
 │   ├── Core/
 │   │   ├── DesignSystem/              토큰 · 공통 컴포넌트(근무 칩 · 시간 띠 · 토스트)     (공통 파일)
-│   │   └── Domain/                    여러 기능이 같이 쓰는 Entity · Repository 인터페이스 (공유 도메인)
+│   │   ├── Domain/                    여러 기능이 같이 쓰는 Entity · Repository 인터페이스 (공유 도메인)
+│   │   └── Data/                      여러 기능의 Data가 같이 쓰는 저장소 도움 코드(날짜 키 · 저장소 오류)
 │   └── Features/<Feature>/
 │       ├── Presentation/              <Screen>View · <Screen>ViewModel · <Feature>Route
 │       ├── Domain/                    UseCase · Entity · State Machine · Repository 인터페이스
@@ -136,7 +137,7 @@ View
 ## 운영 원칙
 
 - 모든 에이전트는 이 문서와 기존 코드를 먼저 확인하고, **기존 패턴을 먼저 재사용**한다.
-- 새 아키텍처 · 라이브러리를 임의로 들이지 않는다(필요하면 멈추고 DEC 초안으로 묻는다). 아직 정하지 않은 것: 로컬 저장소 라이브러리 · 최소 OS 버전 · Android DI(기본은 수동 `AppContainer`) — `AGENTS.md` 미결정.
+- 새 아키텍처 · 라이브러리를 임의로 들이지 않는다(필요하면 멈추고 DEC 초안으로 묻는다). 로컬 저장소는 DEC-013(iOS SwiftData · Android Room). 아직 정하지 않은 것: Android minSdk · Android DI(기본은 수동 `AppContainer`) — `AGENTS.md` 미결정.
 - 병렬은 **소유 경로가 겹치지 않을 때만**. 한 기능을 나눌 때 순서: ① domain-agent가 Entity · UseCase · Repository 인터페이스 · 테스트 표를 먼저 커밋(계약) → ② feature-agent · data-agent가 그 계약에 맞춰 병렬 → ③ 오케스트레이터가 DI · Route 조립.
 - 모델: 단순 화면 · 데이터 연결은 sonnet, 복잡한 Domain(알람 계획 · 날짜 넘김) · State Machine · 리뷰는 opus, 조회는 haiku.
 
@@ -149,7 +150,7 @@ View
 | View | SwiftUI `View`. 상태는 ViewModel에서 받고, 사용자 행동은 ViewModel 메서드 호출 |
 | ViewModel | `@MainActor @Observable final class <Screen>ViewModel` — UseCase를 생성자 주입. 화면 상태(`state`)와 행동 메서드만 |
 | UseCase | `struct` 또는 `final class`, `func callAsFunction(...) async throws -> T` 또는 이름 있는 메서드. SwiftUI · UIKit · 네트워킹 · AlarmKit · WidgetKit import 금지 |
-| Repository | Domain: `protocol <Name>Repository: Sendable`. Data: `final class Live<Name>Repository` · 테스트: `InMemory<Name>Repository` |
+| Repository | Domain: `protocol <Name>Repository: Sendable`. Data: `@ModelActor actor Live<Name>Repository`(SwiftData — DEC-013) · 미리보기 · 테스트: `actor InMemory<Name>Repository` |
 | DI | `App/AppContainer.swift` 하나에서 Live 구현 조립, `@Environment`로 내려준다. 프리뷰 · 테스트는 InMemory 구현 |
 | Router | `@MainActor @Observable final class AppRouter` + `NavigationStack(path:)`. `enum AppRoute: Hashable { case roster(RosterRoute) … }`, 기능별 `enum <F>Route: Hashable` + `@ViewBuilder func view(router:)` |
 | State Machine | `enum <Name>State` + `func transition(_ event:) throws -> <Name>State` — 허용 안 되는 전이는 오류 |
