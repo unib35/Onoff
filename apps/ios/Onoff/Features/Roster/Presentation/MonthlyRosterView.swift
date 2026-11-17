@@ -4,6 +4,10 @@ import SwiftUI
 struct MonthlyRosterView: View {
     @State var viewModel: MonthlyRosterViewModel
     let onSelectDay: (CalendarDay) -> Void
+    /// 근무 입력 시작(14a) — 그 달(연 · 월)
+    let onInput: (Int, Int) -> Void
+    /// 저장된 근무가 바뀌면 바뀐다 — 다시 불러온다
+    let dataRevision: Int
 
     var body: some View {
         ScrollView {
@@ -16,7 +20,8 @@ struct MonthlyRosterView: View {
                     header(roster)
                     MonthGrid(roster: roster, onSelectDay: onSelectDay)
                     if roster.nextMonth.isAllUnregistered {
-                        NextMonthCard(nextMonth: roster.nextMonth)
+                        Button { inputNextMonth(roster) } label: { NextMonthCard(nextMonth: roster.nextMonth) }
+                            .buttonStyle(.plain)
                     }
                     Text(summaryText(roster))
                         .onoffText(13, numeric: true)
@@ -31,7 +36,12 @@ struct MonthlyRosterView: View {
         .scrollIndicators(.hidden)
         .background(OnoffColor.background)
         .foregroundStyle(OnoffColor.ink)
-        .task { await viewModel.loadCurrentMonth() }
+        .task(id: dataRevision) { await viewModel.loadCurrentMonth() }
+    }
+
+    private func inputNextMonth(_ roster: MonthlyRoster) {
+        guard let first = roster.nextMonth.days.first?.date else { return }
+        onInput(first.year, first.month)
     }
 
     private func header(_ roster: MonthlyRoster) -> some View {
@@ -50,7 +60,18 @@ struct MonthlyRosterView: View {
                     .overlay(Capsule().strokeBorder(OnoffColor.line, lineWidth: 1))
             }
             .buttonStyle(.plain)
-            // 「사진」 버튼은 1.2(사진으로 넣기) — REQ-038
+            // 「사진」 버튼(1.2)은 숨기고 그 자리에 같은 모양 「입력」(DEC-014)
+            Button { onInput(roster.year, roster.month) } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "square.and.pencil").font(.system(size: 14, weight: .semibold))
+                    Text("입력").onoffText(14, .semibold)
+                }
+                .foregroundStyle(OnoffColor.onInk)
+                .padding(.horizontal, 14)
+                .frame(height: 36)
+                .background(OnoffColor.ink, in: Capsule())
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, OnoffSpace.xs)
     }

@@ -15,7 +15,8 @@ enum HomeRoute: Hashable {
                     features: container.features
                 ),
                 // 임시 진입점: 설정(8b · 15e)이 생기기 전까지 프로필 → 근무 유형
-                onProfile: { router.navigate(.shiftType(.list)) }
+                onProfile: { router.navigate(.shiftType(.list)) },
+                dataRevision: router.dataRevision
             )
         }
     }

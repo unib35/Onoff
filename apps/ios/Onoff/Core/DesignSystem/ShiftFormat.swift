@@ -18,6 +18,18 @@ enum ShiftFormat {
         return DurationText.clock(first.start) + " – " + DurationText.clock(last.end)
     }
 
+    /// 「14일 (토)」
+    static func dayWithWeekday(_ day: CalendarDay) -> String { "\(day.day)일 (\(weekday(day)))" }
+
+    /// 키패드 키 아래 글자(5a) — 근무는 시작 시각, 휴무 「휴무」, 휴가 「휴가」
+    static func keypadCaption(_ type: ShiftType) -> String {
+        switch type.kind {
+        case .off: "휴무"
+        case .leave: "휴가"
+        case .work: type.segments.first.map { DurationText.clock($0.start) } ?? "종일"
+        }
+    }
+
     /// 「이브닝 · 8시간 30분」
     static func nameAndDuration(_ type: ShiftType) -> String {
         type.isAllDay ? type.name : "\(type.name) · \(DurationText.hoursMinutes(type.workMinutes))"

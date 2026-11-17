@@ -3,8 +3,11 @@ import Foundation
 
 struct ShiftInputSession: Hashable, Sendable {
     var draft: DutyDraft
+    /// 근무 유형 전체(목록 순서) — 숨긴 유형이 들어간 날도 보여야 한다
+    let shiftTypes: [ShiftType]
+
     /// 키패드 순서 = 근무 유형 목록 순서, 숨긴 유형 제외(REQ-005)
-    let keypadTypes: [ShiftType]
+    var keypadTypes: [ShiftType] { shiftTypes.filter { !$0.isHidden } }
 }
 
 struct StartShiftInputUseCase: Sendable {
@@ -19,7 +22,7 @@ struct StartShiftInputUseCase: Sendable {
         let protected = Set(allTypes.filter { $0.kind == .leave }.map(\.id))
         var draft = DutyDraft(range: range, original: try await saved, protectedTypes: protected, cursor: cursor)
         if cursor == nil, let first = draft.firstUnregisteredDay { draft.moveCursor(to: first) }
-        return ShiftInputSession(draft: draft, keypadTypes: allTypes.filter { !$0.isHidden })
+        return ShiftInputSession(draft: draft, shiftTypes: allTypes)
     }
 
     /// 한 달 전체 기간
