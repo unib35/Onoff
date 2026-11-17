@@ -15,9 +15,10 @@ private struct DraftFixture: Decodable {
             let pattern: [String]
             let from: String
             let through: String
+            let afterLeave: String?
         }
         let enter: String?
-        let erase: Bool?
+        let backspace: Bool?
         let move: String?
         let paint: Paint?
         let `repeat`: Repeat?
@@ -69,11 +70,12 @@ struct DutyDraftTests {
                               cursor: day(testCase.cursor))
         for action in testCase.actions {
             if let shift = action.enter { draft.enter(id(shift)) }
-            if action.erase == true { draft.erase() }
+            if action.backspace == true { draft.backspace() }
             if let target = action.move { draft.moveCursor(to: day(target)) }
             if let paint = action.paint { draft.paint(paint.shift.map(id), days: paint.days.map(day)) }
             if let pattern = action.repeat {
-                draft.repeatPattern(pattern.pattern.map(id), from: day(pattern.from), through: day(pattern.through))
+                draft.repeatPattern(pattern.pattern.map(id), from: day(pattern.from), through: day(pattern.through),
+                                    afterLeave: pattern.afterLeave.flatMap(DutyDraft.AfterLeave.init(rawValue:)) ?? .continue)
             }
             if action.undo == true { draft.undo() }
         }
@@ -90,7 +92,7 @@ struct DutyDraftTests {
         draft.paint(id("E"), days: [day("2026-10-05"), day("2026-10-06")])
         draft.repeatPattern([id("D"), id("OFF")], from: day("2026-10-20"), through: day("2026-10-31"))
         draft.moveCursor(to: day("2026-10-15"))
-        draft.erase()
+        draft.backspace()
         while draft.canUndo { draft.undo() }
         #expect(draft.changes.isEmpty)
         #expect(draft.cursor == day("2026-10-01"))
@@ -101,7 +103,7 @@ struct DutyDraftTests {
         var draft = DutyDraft(range: StartShiftInputUseCase.month(year: 2026, month: 10),
                               original: [day("2026-10-05"): id("E")], protectedTypes: [])
         draft.paint(id("E"), days: [day("2026-10-05")])
-        draft.erase() // 10/1은 이미 미등록
+        draft.backspace() // 첫날 10/1은 이미 미등록
         draft.repeatPattern([], from: day("2026-10-01"), through: day("2026-10-31"))
         #expect(!draft.canUndo)
     }
@@ -141,7 +143,7 @@ struct ShiftInputUseCaseTests {
             range: StartShiftInputUseCase.month(year: 2026, month: 10), cursor: day("2026-10-12"))
         session.draft.enter(id("E"))
         session.draft.moveCursor(to: day("2026-10-31"))
-        session.draft.erase()
+        session.draft.backspace() // 앞 칸 10/30을 비움
         let result = try await ApplyShiftInputUseCase(duties: duties)(session.draft)
         #expect(result.savedDays == 2)
         #expect(result.draft.changes.isEmpty) // 저장한 값이 새 기준
@@ -150,10 +152,23 @@ struct ShiftInputUseCaseTests {
 
         let saved = try await duties.assignments(from: day("2026-10-01"), through: day("2026-10-31"))
         #expect(saved[day("2026-10-12")] == id("E"))
-        #expect(saved[day("2026-10-31")] == nil)
+        #expect(saved[day("2026-10-30")] == nil)
         #expect(saved.count == 30)
-        let loaded = try await TestSupport.loadDutyDays(saved)(from: day("2026-10-31"), through: day("2026-10-31"))
+        let loaded = try await TestSupport.loadDutyDays(saved)(from: day("2026-10-30"), through: day("2026-10-30"))
         #expect(loaded.first?.state == .unregistered)
+    }
+
+    @Test("처음 커서: 누른 날 → 첫 미등록 날 → 다 채워졌으면 1일(DEC-014)")
+    func initialCursor() async throws {
+        let october = StartShiftInputUseCase.month(year: 2026, month: 10)
+        let (types, full) = repositories()
+        #expect(try await StartShiftInputUseCase(shiftTypes: types, duties: full)(range: october).draft.cursor == day("2026-10-01"))
+        var partial = SampleData.octoberDuties
+        partial[day("2026-10-14")] = nil
+        partial[day("2026-10-20")] = nil
+        let start = StartShiftInputUseCase(shiftTypes: types, duties: InMemoryDutyRepository(partial))
+        #expect(try await start(range: october).draft.cursor == day("2026-10-14"))
+        #expect(try await start(range: october, cursor: day("2026-10-25")).draft.cursor == day("2026-10-25"))
     }
 
     @Test("적용: 바뀐 게 없으면 저장하지 않는다")

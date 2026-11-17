@@ -11,13 +11,14 @@ struct StartShiftInputUseCase: Sendable {
     let shiftTypes: any ShiftTypeRepository
     let duties: any DutyRepository
 
-    /// - Parameter cursor: 처음 커서 날(누른 날). 없으면 기간 첫날
+    /// - Parameter cursor: 처음 커서 날(누른 날). 없으면 첫 미등록 날, 다 채워졌으면 기간 첫날(DEC-014)
     func callAsFunction(range: ClosedRange<CalendarDay>, cursor: CalendarDay? = nil) async throws -> ShiftInputSession {
         async let types = shiftTypes.shiftTypes()
         async let saved = duties.assignments(from: range.lowerBound, through: range.upperBound)
         let allTypes = try await types
         let protected = Set(allTypes.filter { $0.kind == .leave }.map(\.id))
-        let draft = DutyDraft(range: range, original: try await saved, protectedTypes: protected, cursor: cursor)
+        var draft = DutyDraft(range: range, original: try await saved, protectedTypes: protected, cursor: cursor)
+        if cursor == nil, let first = draft.firstUnregisteredDay { draft.moveCursor(to: first) }
         return ShiftInputSession(draft: draft, keypadTypes: allTypes.filter { !$0.isHidden })
     }
 
