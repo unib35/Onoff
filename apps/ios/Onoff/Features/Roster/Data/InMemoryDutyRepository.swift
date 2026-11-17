@@ -10,11 +10,8 @@ actor InMemoryDutyRepository: DutyRepository {
         assignments.filter { $0.key >= from && $0.key <= through }
     }
 
-    func assign(_ assignments: [CalendarDay: ShiftTypeID]) async throws {
-        self.assignments.merge(assignments) { _, new in new }
-    }
-
-    func clear(_ days: [CalendarDay]) async throws {
-        for day in days { assignments[day] = nil }
+    func apply(_ changes: DutyChanges) async throws {
+        for day in changes.cleared { assignments[day] = nil }
+        assignments.merge(changes.assigned) { _, new in new }
     }
 }

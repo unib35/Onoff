@@ -62,4 +62,6 @@ final class AppContainer {
     }
     var getDayDetail: GetDayDetailUseCase { GetDayDetailUseCase(shiftTypes: shiftTypes, loadDutyDays: loadDutyDays, memos: memos) }
     var getShiftTypes: GetShiftTypesUseCase { GetShiftTypesUseCase(repository: shiftTypes) }
+    var startShiftInput: StartShiftInputUseCase { StartShiftInputUseCase(shiftTypes: shiftTypes, duties: duties) }
+    var applyShiftInput: ApplyShiftInputUseCase { ApplyShiftInputUseCase(duties: duties) }
 }

@@ -10,28 +10,27 @@ actor LiveDutyRepository: DutyRepository {
                           uniquingKeysWith: { _, last in last })
     }
 
-    func assign(_ assignments: [CalendarDay: ShiftTypeID]) async throws {
-        guard !assignments.isEmpty else { return }
-        let keys = assignments.keys.map(\.storageKey)
-        let existing = try stored(from: keys.min()!, through: keys.max()!)
+    func apply(_ changes: DutyChanges) async throws {
+        let keys = changes.assigned.keys.map(\.storageKey) + changes.cleared.map(\.storageKey)
+        guard let lower = keys.min(), let upper = keys.max() else { return }
+        let existing = try stored(from: lower, through: upper)
         let byDay = Dictionary(existing.map { ($0.day, $0) }, uniquingKeysWith: { first, _ in first })
-        for (day, typeID) in assignments {
+        for day in changes.cleared {
+            if let item = byDay[day.storageKey], changes.assigned[day] == nil { modelContext.delete(item) }
+        }
+        for (day, typeID) in changes.assigned {
             if let item = byDay[day.storageKey] {
                 item.shiftTypeID = typeID.rawValue
             } else {
                 modelContext.insert(StoredDuty(day: day, shiftTypeID: typeID))
             }
         }
-        try modelContext.save()
-    }
-
-    func clear(_ days: [CalendarDay]) async throws {
-        let keys = Set(days.map(\.storageKey))
-        guard let lower = keys.min(), let upper = keys.max() else { return }
-        for item in try stored(from: lower, through: upper) where keys.contains(item.day) {
-            modelContext.delete(item)
+        do {
+            try modelContext.save() // 한 번에 저장 — 일부만 남지 않는다
+        } catch {
+            modelContext.rollback() // 실패한 변경이 다음 저장에 섞여 들어가지 않게
+            throw error
         }
-        try modelContext.save()
     }
 
     private func stored(from lower: Int, through upper: Int) throws -> [StoredDuty] {
