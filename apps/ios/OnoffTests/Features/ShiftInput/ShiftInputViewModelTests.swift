@@ -51,7 +51,7 @@ struct ShiftInputViewModelTests {
         let model = viewModel(duties: duties, cursor: day(10))
         await model.load()
         model.enter(try #require(model.keypadTypes.first { $0.code == "N" }))
-        #expect(await model.apply())
+        #expect(await model.apply() == .close(saved: true))
         #expect(model.changedCount == 0)
         #expect(try await duties.assignments(from: day(1), through: day(30)) == [day(10): ShiftTypeID(rawValue: "N")])
     }
@@ -61,9 +61,43 @@ struct ShiftInputViewModelTests {
         let model = viewModel(duties: FailingDutyRepository(saved: [:]))
         await model.load()
         model.enter(try #require(model.keypadTypes.first))
-        #expect(await model.apply() == false)
+        #expect(await model.apply() == .stay)
         #expect(model.saveFailed)
         #expect(model.changedCount == 1)
+    }
+
+    @Test("고쳤다가 되돌리면 바뀐 칸 0 — 취소할 때 묻지 않는다, 바뀐 게 없으면 저장 없이 닫음")
+    func undoBackToZero() async throws {
+        let model = viewModel(duties: InMemoryDutyRepository([day(3): ShiftTypeID(rawValue: "D")]), cursor: day(3))
+        await model.load()
+        model.enter(try #require(model.keypadTypes.first { $0.code == "E" }))
+        model.undo()
+        #expect(model.changedCount == 0)
+        #expect(model.cursorDay == day(3))
+        model.skipDay()
+        #expect(model.cursorDay == day(4))
+        model.previousDay()
+        model.select(day(20))
+        #expect(model.cursorDay == day(20))
+        #expect(model.nextDay == day(21))
+        model.select(day(30))
+        #expect(model.nextDay == nil)
+        #expect(await model.apply() == .close(saved: false))
+    }
+
+    @Test("지운 근무 유형을 가리키는 날은 빈 칸 · 넣은 날로 세지 않는다(REQ-008)")
+    func unknownTypeIsEmpty() async {
+        let model = viewModel(duties: InMemoryDutyRepository([day(1): ShiftTypeID(rawValue: "GONE"), day(2): ShiftTypeID(rawValue: "D")]))
+        await model.load()
+        #expect(model.cells[0].shift == nil)
+        #expect(model.filledCount == 1)
+    }
+
+    @Test("불러오기 실패")
+    func loadFails() async {
+        let model = viewModel(duties: FailingLoad())
+        await model.load()
+        #expect(model.state == .failed)
     }
 
     @Test("시작 시트: 미등록 날 수, 실패하면 숫자를 보이지 않음")

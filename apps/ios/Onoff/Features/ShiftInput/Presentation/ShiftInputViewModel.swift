@@ -57,8 +57,10 @@ final class ShiftInputViewModel {
     var canUndo: Bool { draft.canUndo }
     var cursorDay: CalendarDay { draft.cursor }
     var isCursorOnLastDay: Bool { draft.cursor == draft.range.upperBound }
-    /// 「13/30」의 앞 수 — 넣은 날
-    var filledCount: Int { draft.filledCount }
+    /// 「13/30」의 앞 수 — 넣은 날(지운 유형을 가리키는 날은 비어 보이므로 빼고 센다)
+    var filledCount: Int { draft.filledCount(known: Set(typesByID.keys)) }
+    /// 키패드로 넣은 뒤 커서가 갈 날 — 마지막 날이면 nil
+    var nextDay: CalendarDay? { isCursorOnLastDay ? nil : SeoulCalendar.adding(days: 1, to: draft.cursor) }
     var dayCount: Int { draft.dayCount }
     /// 1일 앞 빈칸(일요일 시작)
     var leadingBlanks: Int { SeoulCalendar.weekdayIndex(draft.range.lowerBound) }
@@ -82,16 +84,25 @@ final class ShiftInputViewModel {
 
     // MARK: - 적용
 
-    /// - Returns: 닫아도 되면 true(저장 성공 또는 바뀐 날 없음)
-    func apply() async -> Bool {
+    enum ApplyOutcome: Equatable {
+        /// 닫는다 — 저장한 날이 있으면 saved
+        case close(saved: Bool)
+        /// 저장 중이거나 실패 — 화면에 남는다
+        case stay
+    }
+
+    /// 저장하는 동안에는 입력을 막는다(View가 isSaving으로) — 저장 중 고친 값이 사라지지 않게
+    func apply() async -> ApplyOutcome {
+        guard !isSaving else { return .stay }
         isSaving = true
         defer { isSaving = false }
         do {
-            draft = try await applyShiftInput(draft).draft
-            return true
+            let result = try await applyShiftInput(draft)
+            draft = result.draft
+            return .close(saved: result.savedDays > 0)
         } catch {
             saveFailed = true
-            return false
+            return .stay
         }
     }
 }

@@ -13,6 +13,8 @@ struct DutyDraft: Hashable, Sendable {
     /// 키패드가 넣을 날
     private(set) var cursor: CalendarDay
     private var history: [Step] = []
+    /// 기간 마지막 날에 넣어 커서가 넘어가지 못한 상태 — 이때 ⌫는 방금 넣은 그 칸을 지운다
+    private var enteredAtEnd = false
 
     /// 되돌리기 한 번 = 동작 하나. 그 동작 전의 값과 커서를 기억한다.
     private struct Step: Hashable, Sendable {
@@ -52,6 +54,7 @@ struct DutyDraft: Hashable, Sendable {
     /// 칸을 눌러 커서를 옮긴다. 되돌리기 대상이 아니다(원본에 없음 — 되돌리면 커서는 그 동작 전으로).
     mutating func moveCursor(to day: CalendarDay) {
         cursor = Self.clamp(day, to: range)
+        enteredAtEnd = false
     }
 
     // MARK: - 키패드 (REQ-010)
@@ -60,13 +63,19 @@ struct DutyDraft: Hashable, Sendable {
     mutating func enter(_ shift: ShiftTypeID) {
         record([cursor])
         current[cursor] = shift
-        if cursor < range.upperBound { cursor = SeoulCalendar.adding(days: 1, to: cursor) }
+        if cursor < range.upperBound {
+            cursor = SeoulCalendar.adding(days: 1, to: cursor)
+            enteredAtEnd = false
+        } else {
+            enteredAtEnd = true
+        }
     }
 
     /// ⌫ 지우기 — 앞 칸으로 가서 그 칸을 미등록으로(5a 「지우면 이전 날로」 · DEC-014). OFF로 채우지 않는다(REQ-008).
-    /// 기간 첫날에서는 그 칸을 비운다.
+    /// 기간 첫날에서는 그 칸을, 마지막 날에 방금 넣었으면(커서가 못 넘어감) 그 칸을 비운다.
     mutating func backspace() {
-        let target = cursor > range.lowerBound ? SeoulCalendar.adding(days: -1, to: cursor) : cursor
+        let target = (cursor > range.lowerBound && !enteredAtEnd) ? SeoulCalendar.adding(days: -1, to: cursor) : cursor
+        enteredAtEnd = false
         if current[target] != nil {
             record([target])
             current[target] = nil
@@ -88,6 +97,7 @@ struct DutyDraft: Hashable, Sendable {
         guard !targets.isEmpty else { return }
         record(Array(targets))
         for day in targets { current[day] = shift }
+        enteredAtEnd = false
     }
 
     // MARK: - 순서 반복 (REQ-013)
@@ -123,10 +133,15 @@ struct DutyDraft: Hashable, Sendable {
         guard !updates.isEmpty else { return }
         record(Array(updates.keys))
         current.merge(updates) { _, new in new }
+        enteredAtEnd = false
     }
 
-    /// 기간 안에서 아직 넣지 않은 날 수(상태 줄 「13/30」의 남은 칸 계산용)
-    var filledCount: Int { current.count }
+    /// 기간 안에서 넣은 날 수(상태 줄 「13/30」). `known`을 주면 그 유형을 가리키는 날만 센다 —
+    /// 지운 유형을 가리키는 날은 화면에서 비어 보이므로 넣은 날로 세지 않는다(REQ-008)
+    func filledCount(known: Set<ShiftTypeID>? = nil) -> Int {
+        guard let known else { return current.count }
+        return current.values.filter(known.contains).count
+    }
     var dayCount: Int { SeoulCalendar.daysBetween(range.lowerBound, range.upperBound) + 1 }
 
     /// 기간에서 첫 미등록 날 — 없으면 nil
@@ -155,6 +170,7 @@ struct DutyDraft: Hashable, Sendable {
         guard let step = history.popLast() else { return }
         for entry in step.previous { current[entry.day] = entry.shift }
         cursor = step.cursor
+        enteredAtEnd = false
     }
 
     // MARK: -

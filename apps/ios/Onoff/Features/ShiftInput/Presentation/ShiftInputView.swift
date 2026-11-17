@@ -30,6 +30,7 @@ struct ShiftInputView: View {
                 }
                 .scrollIndicators(.hidden)
                 .safeAreaInset(edge: .bottom, spacing: 0) { keypad }
+                .disabled(viewModel.isSaving)
             }
         }
         .padding(.top, OnoffSpace.l)
@@ -66,7 +67,7 @@ struct ShiftInputView: View {
                     .frame(width: 32, height: 32)
                     .background(OnoffColor.card, in: Circle())
             }
-            .disabled(!viewModel.canUndo)
+            .disabled(!viewModel.canUndo || viewModel.isSaving)
             .opacity(viewModel.canUndo ? 1 : 0.4)
             .accessibilityLabel("되돌리기")
 
@@ -121,15 +122,14 @@ struct ShiftInputView: View {
 
     /// 「누르면 14일에 넣고 15일로 넘어가요」 — 마지막 날은 넘어갈 날이 없다
     private var hint: String {
-        let day = viewModel.cursorDay
-        if viewModel.isCursorOnLastDay { return "누르면 \(day.day)일에 넣어요" }
-        return "누르면 \(day.day)일에 넣고 \(SeoulCalendar.adding(days: 1, to: day).day)일로 넘어가요"
+        let day = viewModel.cursorDay.day
+        guard let next = viewModel.nextDay else { return "누르면 \(day)일에 넣어요" }
+        return "누르면 \(day)일에 넣고 \(next.day)일로 넘어가요"
     }
 
     private func apply() {
         Task {
-            let saved = viewModel.changedCount > 0
-            if await viewModel.apply() { onClose(saved) }
+            if case let .close(saved) = await viewModel.apply() { onClose(saved) }
         }
     }
 }

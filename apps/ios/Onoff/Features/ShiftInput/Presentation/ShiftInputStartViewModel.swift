@@ -16,7 +16,7 @@ final class ShiftInputStartViewModel {
     }
 
     func load() async {
-        let draft = try? await startShiftInput(range: StartShiftInputUseCase.month(year: year, month: month)).draft
-        unregisteredDays = draft.map { $0.dayCount - $0.filledCount }
+        let session = try? await startShiftInput(range: StartShiftInputUseCase.month(year: year, month: month))
+        unregisteredDays = session.map { $0.draft.dayCount - $0.draft.filledCount(known: Set($0.shiftTypes.map(\.id))) }
     }
 }
