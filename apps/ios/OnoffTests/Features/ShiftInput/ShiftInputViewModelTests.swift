@@ -172,6 +172,45 @@ struct ShiftInputViewModelTests {
         #expect(model.cursorDay == day(1))
     }
 
+    @Test("끄는 중 방법을 바꾸거나 적용하면 미리보기는 버린다(넣지 않음)")
+    func strokeDiscarded() async throws {
+        let model = viewModel(duties: InMemoryDutyRepository([:]))
+        await model.load()
+        model.beginStroke(at: day(3))
+        model.moveStroke(to: day(5))
+        model.method = .keypad
+        #expect(model.isStroking == false)
+        #expect(model.cells[3].shift == nil && model.changedCount == 0)
+
+        model.method = .paint
+        model.beginStroke(at: day(3))
+        #expect(await model.apply() == .close(saved: false))
+        #expect(model.isStroking == false)
+    }
+
+    @Test("칠한 칸 테두리: 실제로 바뀐 날만, 되돌리거나 키패드로 넣은 칸은 아님(14b)")
+    func paintMarks() async throws {
+        let model = viewModel(duties: InMemoryDutyRepository([:]), cursor: day(12))
+        await model.load()
+        let d = try #require(model.keypadTypes.first { $0.code == "D" })
+        model.enter(d) // 12일 D(키패드)
+        model.method = .paint
+        model.beginStroke(at: day(10))
+        model.moveStroke(to: day(14))
+        model.endStroke() // D 붓
+        #expect(model.cells[11].isPainted == false) // 이미 D였던 12일
+        #expect(model.cells[9].isPainted && model.cells[13].isPainted)
+
+        model.undo() // 칠하기 되돌림
+        model.method = .keypad
+        model.select(day(10))
+        model.enter(d)
+        #expect(model.cells[9].isPainted == false)
+
+        model.paintDay(day(20))
+        #expect(model.cells[19].isPainted && model.cells[19].shift?.code == "D")
+    }
+
     @Test("달력 칸 자리 계산 — 손가락 위치 → 날")
     func gridLayout() {
         // 폭 7칸 × 50 + 사이 2 × 6 = 362, 줄 높이 52 + 2

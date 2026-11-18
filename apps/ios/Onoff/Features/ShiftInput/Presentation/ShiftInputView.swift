@@ -105,8 +105,9 @@ struct ShiftInputView: View {
                           onSelect: viewModel.select)
         case .paint:
             InputCalendar(cells: viewModel.cells, leadingBlanks: viewModel.leadingBlanks, cursorStyle: .resting,
-                          stroke: PaintGesture(begin: viewModel.beginStroke, move: viewModel.moveStroke,
-                                               end: viewModel.endStroke, cancel: viewModel.cancelStroke))
+                          stroke: PaintGesture(isStroking: viewModel.isStroking, begin: viewModel.beginStroke,
+                                               move: viewModel.moveStroke, end: viewModel.endStroke,
+                                               cancel: viewModel.cancelStroke, paintDay: viewModel.paintDay))
                 .overlay(alignment: .topTrailing) {
                     if let summary = viewModel.strokeSummary { StrokePill(text: summary) }
                 }
@@ -202,10 +203,12 @@ private enum CursorStyle {
 
 /// 칠하기 손짓 — 길게 누른 칸에서 시작해 끌고, 떼면 넣는다(11c)
 private struct PaintGesture {
+    let isStroking: Bool
     let begin: (CalendarDay) -> Void
     let move: (CalendarDay?) -> Void
     let end: () -> Void
     let cancel: () -> Void
+    let paintDay: (CalendarDay) -> Void
 }
 
 private struct InputCalendar: View {
@@ -217,7 +220,8 @@ private struct InputCalendar: View {
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: InputGridLayout.spacing), count: 7)
     @State private var gridWidth: CGFloat = 0
-    @State private var dragging = false
+    /// 제스처가 살아 있는 동안 true — 끊기면(스크롤이 가져감 · 전화 · 화면 막힘) SwiftUI가 false로 되돌린다
+    @GestureState private var gestureActive = false
 
     var body: some View {
         VStack(spacing: 6) {
@@ -246,6 +250,7 @@ private struct InputCalendar: View {
                         .buttonStyle(.plain)
                 } else {
                     InputCell(cell: cell, cursorStyle: cursorStyle)
+                        .accessibilityAction(named: "이 날 칠하기") { stroke?.paintDay(cell.date) }
                 }
             }
         }
@@ -254,22 +259,32 @@ private struct InputCalendar: View {
 
         if let stroke {
             // 길게 눌러야 시작 — 짧게 쓸면 스크롤(두 손가락 스크롤도 그대로 된다)
-            base.gesture(
-                LongPressGesture(minimumDuration: 0.25)
-                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
-                    .onChanged { value in
-                        guard case let .second(true, drag?) = value else { return }
-                        if !dragging {
-                            dragging = true
-                            if let anchor = day(at: drag.startLocation) { stroke.begin(anchor) }
+            base
+                .gesture(
+                    LongPressGesture(minimumDuration: 0.25)
+                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+                        .updating($gestureActive) { value, active, _ in
+                            if case .second(true, _) = value { active = true }
                         }
-                        stroke.move(day(at: drag.location))
-                    }
-                    .onEnded { _ in
-                        if dragging { stroke.end() } else { stroke.cancel() }
-                        dragging = false
-                    }
-            )
+                        .onChanged { value in
+                            guard case let .second(true, drag?) = value else { return }
+                            if !stroke.isStroking, let anchor = day(at: drag.startLocation) { stroke.begin(anchor) }
+                            stroke.move(day(at: drag.location))
+                        }
+                        .onEnded { value in
+                            guard case let .second(true, drag) = value else { return stroke.cancel() }
+                            if stroke.isStroking {
+                                stroke.end()
+                            } else if let drag, let day = day(at: drag.startLocation) {
+                                // 길게 누르고 움직이지 않고 뗌 — 그 날 하나
+                                stroke.paintDay(day)
+                            }
+                        }
+                )
+                // 끊긴 제스처는 onEnded가 오지 않는다 — 남은 미리보기를 버린다(넣지 않음)
+                .onChange(of: gestureActive) { _, active in
+                    if !active { stroke.cancel() }
+                }
         } else {
             base
         }
@@ -327,7 +342,8 @@ private struct InputCell: View {
         .opacity(cell.isUnderFinger ? 0.55 : 1)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(cell.date.day)일 \(cell.shift?.name ?? "미등록")")
+        .accessibilityLabel("\(cell.date.day)일 \(cell.shift?.name ?? "미등록")\(cell.isPainted ? " · 칠함" : "")")
+        .accessibilityAddTraits(cell.isCursor ? .isSelected : [])
     }
 
     @ViewBuilder private var chip: some View {

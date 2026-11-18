@@ -50,7 +50,8 @@ final class ShiftInputViewModel {
     private(set) var draft: DutyDraft
     private(set) var keypadTypes: [ShiftType] = []
     private(set) var isSaving = false
-    var method: ShiftInputMethod
+    /// 바꾸면 끄던 칠하기는 넣지 않고 버린다 — 미리보기는 초안이 아니다
+    var method: ShiftInputMethod { didSet { stroke = nil } }
     /// 고른 붓 — 불러오면 목록 첫 근무
     var brush: Brush?
     /// 끄는 중인 칠하기 — 손을 떼면 초안에 넣고 nil
@@ -130,12 +131,19 @@ final class ShiftInputViewModel {
 
     // MARK: - 키패드
 
-    func enter(_ type: ShiftType) { draft.enter(type.id) }
+    func enter(_ type: ShiftType) {
+        paintMarks[draft.cursor] = nil // 키패드로 넣은 칸은 칠한 칸이 아니다
+        draft.enter(type.id)
+    }
     func backspace() { draft.backspace() }
     func previousDay() { draft.previousDay() }
     func skipDay() { draft.skipDay() }
     func select(_ day: CalendarDay) { draft.moveCursor(to: day) }
-    func undo() { draft.undo() }
+    func undo() {
+        draft.undo()
+        // 되돌려서 값이 달라진 칸은 더 이상 칠한 칸이 아니다
+        paintMarks = paintMarks.filter { draft.shift(on: $0.key) == $0.value }
+    }
 
     // MARK: - 칠하기 (11c)
 
@@ -153,14 +161,24 @@ final class ShiftInputViewModel {
 
     /// 손을 뗌 — 지나간 날을 한 번에 넣는다(되돌리기 한 번에 함께 돌아감)
     func endStroke() {
-        guard let stroke, let brush else { return }
+        let stroke = self.stroke
         self.stroke = nil
-        let days = stroke.days
-        draft.paint(brush.shiftID, days: days)
-        for day in days {
+        guard let stroke, let brush else { return }
+        // 실제로 바뀌는 날만 칠한 칸으로 — 이미 같은 값이던 날은 그대로
+        let changing = stroke.days.filter { draft.range.contains($0) && draft.shift(on: $0) != brush.shiftID }
+        draft.paint(brush.shiftID, days: stroke.days)
+        for day in changing {
             if let id = brush.shiftID { paintMarks[day] = id } else { paintMarks[day] = nil }
         }
     }
+
+    /// 한 날만 칠하기 — VoiceOver 동작 · 길게 누르고 움직이지 않고 뗀 경우
+    func paintDay(_ day: CalendarDay) {
+        beginStroke(at: day)
+        endStroke()
+    }
+
+    var isStroking: Bool { stroke != nil }
 
     /// 제스처가 끊김(전화 등) — 넣지 않는다
     func cancelStroke() { stroke = nil }
@@ -177,6 +195,7 @@ final class ShiftInputViewModel {
     /// 저장하는 동안에는 입력을 막는다(View가 isSaving으로) — 저장 중 고친 값이 사라지지 않게
     func apply() async -> ApplyOutcome {
         guard !isSaving else { return .stay }
+        stroke = nil
         isSaving = true
         defer { isSaving = false }
         do {
