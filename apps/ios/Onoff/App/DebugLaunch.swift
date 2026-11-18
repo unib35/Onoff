@@ -21,6 +21,9 @@ enum DebugLaunch {
         case "input-keypad":
             router.selectedTab = .roster
             router.present(AppCover.shiftInput(.editor(year: 2026, month: 10, day: CalendarDay(year: 2026, month: 10, day: 14))))
+        case "input-paint":
+            router.selectedTab = .roster
+            router.present(AppCover.shiftInput(.editor(year: 2026, month: 10, day: nil, method: .paint)))
         case "shift-types":
             router.navigate(.shiftType(.list))
         default:
