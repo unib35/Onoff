@@ -30,7 +30,23 @@ struct RootView: View {
                 .padding(.bottom, 26) // 원본: 화면 아래 끝에서 26
                 .ignoresSafeArea(.container, edges: .bottom)
             }
+
+            if let offer = router.undoOffer {
+                UndoToast(offer: offer) {
+                    router.undoOffer = nil
+                    Task {
+                        try? await container.applyShiftInput.revert(offer.revert)
+                        router.dataDidChange()
+                    }
+                } onExpire: {
+                    if router.undoOffer == offer { router.undoOffer = nil }
+                }
+                .padding(.horizontal, OnoffSpace.xl)
+                .padding(.bottom, router.isAtRoot ? 100 : OnoffSpace.xl)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
+        .animation(.default, value: router.undoOffer)
         .sheet(item: $router.sheet, onDismiss: router.sheetDidDismiss) { sheet in
             sheet.view(container: container, router: router)
         }
@@ -50,6 +66,29 @@ struct RootView: View {
                     route.view(container: container, router: router)
                         .toolbar(.hidden, for: .navigationBar)
                 }
+        }
+    }
+}
+
+/// 바로 저장한 뒤 「되돌리기」 — 원본에 이 안내 모양은 없다(보류). 8초 뒤 사라진다.
+private struct UndoToast: View {
+    let offer: UndoOffer
+    let onUndo: () -> Void
+    let onExpire: () -> Void
+
+    var body: some View {
+        HStack(spacing: OnoffSpace.l) {
+            Text(offer.message).onoffText(14, .semibold)
+            Spacer(minLength: 0)
+            Button("되돌리기", action: onUndo).onoffText(14, .heavy).buttonStyle(.plain)
+        }
+        .foregroundStyle(OnoffColor.onInk)
+        .padding(.horizontal, OnoffSpace.xl)
+        .frame(minHeight: 48)
+        .background(OnoffColor.ink, in: RoundedRectangle(cornerRadius: 16))
+        .task(id: offer.id) {
+            try? await Task.sleep(for: .seconds(8))
+            onExpire()
         }
     }
 }

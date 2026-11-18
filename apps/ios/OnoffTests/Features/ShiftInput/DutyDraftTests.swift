@@ -16,6 +16,7 @@ private struct DraftFixture: Decodable {
             let from: String
             let through: String
             let afterLeave: String?
+            let existing: String?
         }
         let enter: String?
         let backspace: Bool?
@@ -75,7 +76,8 @@ struct DutyDraftTests {
             if let paint = action.paint { draft.paint(paint.shift.map(id), days: paint.days.map(day)) }
             if let pattern = action.repeat {
                 draft.repeatPattern(pattern.pattern.map(id), from: day(pattern.from), through: day(pattern.through),
-                                    afterLeave: pattern.afterLeave.flatMap(DutyDraft.AfterLeave.init(rawValue:)) ?? .continue)
+                                    afterLeave: pattern.afterLeave.flatMap(DutyDraft.AfterLeave.init(rawValue:)) ?? .continue,
+                                    keepExisting: pattern.existing == "keep")
             }
             if action.undo == true { draft.undo() }
         }
