@@ -14,6 +14,8 @@ final class AppRouter {
     private(set) var dataRevision = 0
     /// 바로 저장한 뒤 한 번 되돌릴 수 있게 아래에 띄우는 안내(순서 반복 22a)
     var undoOffer: UndoOffer?
+    /// 되돌리기 실패 알림
+    var undoFailed = false
 
     func path(for tab: AppTab) -> Binding<[AppRoute]> {
         Binding(get: { self.paths[tab, default: []] }, set: { self.paths[tab] = $0 })
@@ -62,8 +64,10 @@ final class AppRouter {
         cover = nil
     }
 
+    /// 다른 저장이 일어나면 이전 되돌리기 안내는 버린다 — 그 사이 고친 날을 옛 값으로 덮지 않게
     func dataDidChange() {
         dataRevision += 1
+        undoOffer = nil
     }
 }
 

@@ -29,8 +29,12 @@ final class RepeatPatternViewModel {
 
     private(set) var state: State = .loading
     private(set) var preset: RepeatPreset = .fourTeamTwoShift
-    private(set) var plan = RepeatPlan(pattern: RepeatPreset.fourTeamTwoShift.pattern ?? [], startIndex: 0)
-    private(set) var months = 3
+    private(set) var plan = RepeatPlan(pattern: RepeatPreset.fourTeamTwoShift.pattern ?? [], startIndex: 0) {
+        didSet { refresh() }
+    }
+    private(set) var months = 3 { didSet { refresh() } }
+    /// 지금 설정으로 채운 초안 — 설정이 바뀔 때만 다시 계산한다
+    private var filled: DutyDraft
     /// 22b — 고치는 칸(끝 다음 = 「+」 자리). nil이면 고치지 않는 중
     private(set) var editingIndex: Int?
     /// 22b 「순서를 고쳐서 11월 1일 근무가 바뀌었어요」
@@ -41,14 +45,17 @@ final class RepeatPatternViewModel {
     private(set) var shiftTypes: [ShiftType] = []
     private var typesByID: [ShiftTypeID: ShiftType] = [:]
     private var base: DutyDraft
-    private var firstDayBeforeEdit: ShiftTypeID?
+    /// 프리셋을 고르거나 첫날 위치를 정한 때의 첫날 근무 — 칸을 고쳐 이것과 달라지면 안내
+    private var confirmedFirstDay: ShiftTypeID?
     private let startShiftInput: StartShiftInputUseCase
     private let applyShiftInput: ApplyShiftInputUseCase
 
     init(year: Int, month: Int, startShiftInput: StartShiftInputUseCase, applyShiftInput: ApplyShiftInputUseCase) {
         let first = CalendarDay(year: year, month: month, day: 1)
-        base = DutyDraft(range: first...Self.monthEnd(from: first, months: Self.monthRange.upperBound),
-                         original: [:], protectedTypes: [])
+        let empty = DutyDraft(range: first...Self.monthEnd(from: first, months: Self.monthRange.upperBound),
+                              original: [:], protectedTypes: [])
+        base = empty
+        filled = empty
         self.startShiftInput = startShiftInput
         self.applyShiftInput = applyShiftInput
     }
@@ -59,11 +66,16 @@ final class RepeatPatternViewModel {
             base = session.draft
             shiftTypes = session.shiftTypes
             typesByID = Dictionary(session.shiftTypes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            // 기본 프리셋을 쓸 수 없으면(D · N · OFF가 없음) 「직접」으로 첫 근무 두 칸
+            // 기본 프리셋을 쓸 수 없으면(D · N · OFF가 없음) 「직접」으로 휴가가 아닌 첫 근무 두 칸
             if !isAvailable(preset) {
                 preset = .custom
-                plan.pattern = Array(keypadTypes.prefix(RepeatPlan.minimumLength).map(\.id))
+                let candidates = keypadTypes.filter { $0.kind != .leave }.map(\.id)
+                plan.pattern = candidates.count >= RepeatPlan.minimumLength
+                    ? Array(candidates.prefix(RepeatPlan.minimumLength))
+                    : Array(repeating: candidates.first ?? keypadTypes.first?.id ?? ShiftTypeID(rawValue: "OFF"), count: RepeatPlan.minimumLength)
             }
+            confirmedFirstDay = plan.firstDayShift
+            refresh()
             state = .editing
         } catch {
             state = .failed
@@ -82,12 +94,14 @@ final class RepeatPatternViewModel {
     var lastDay: CalendarDay { Self.monthEnd(from: firstDay, months: months) }
     var lastMonth: Int { lastDay.month }
 
+    /// 쓸 수 있는 프리셋 — 칸 글자가 내 근무 유형에 다 있어야 한다. 야간전담은 원본에 순서가 없어 정해질 때까지 숨김(보류)
     func isAvailable(_ preset: RepeatPreset) -> Bool {
+        if preset == .nightOnly { return false }
         guard let pattern = preset.pattern else { return true }
         return pattern.allSatisfy { typesByID[$0] != nil }
     }
 
-    private var filled: DutyDraft { plan.filled(base, through: lastDay) }
+    private func refresh() { filled = plan.filled(base, through: lastDay) }
 
     /// 채울 날 수 — 휴가 · 그대로 둘 근무는 빼고 실제로 바뀌는 날
     var fillCount: Int { filled.changes.dayCount }
@@ -136,10 +150,16 @@ final class RepeatPatternViewModel {
             plan.startIndex = preset.startIndex(firstDay: firstDay)
         }
         editingIndex = nil
+        confirmedFirstDay = plan.firstDayShift
         firstDayChanged = false
     }
 
-    func chooseStart(_ index: Int) { plan.startIndex = max(0, min(index, plan.pattern.count - 1)) }
+    /// 첫날 위치를 직접 고르면 그게 확인한 값이다
+    func chooseStart(_ index: Int) {
+        plan.startIndex = max(0, min(index, plan.pattern.count - 1))
+        confirmedFirstDay = plan.firstDayShift
+        firstDayChanged = false
+    }
     func setAfterLeave(_ value: DutyDraft.AfterLeave) { plan.afterLeave = value }
     func setKeepExisting(_ value: Bool) { plan.keepExisting = value }
     func addMonth() { months = min(months + 1, Self.monthRange.upperBound) }
@@ -151,7 +171,6 @@ final class RepeatPatternViewModel {
 
     /// 칸(또는 「+」)을 눌러 고치기 시작
     func edit(_ index: Int) {
-        if editingIndex == nil { firstDayBeforeEdit = plan.firstDayShift }
         editingIndex = min(index, plan.pattern.count)
     }
 
@@ -186,7 +205,7 @@ final class RepeatPatternViewModel {
 
     private func didEditPattern() {
         preset = .custom
-        firstDayChanged = plan.firstDayShift != firstDayBeforeEdit
+        firstDayChanged = plan.firstDayShift != confirmedFirstDay
     }
 
     // MARK: - 채우기
@@ -206,18 +225,18 @@ final class RepeatPatternViewModel {
 
     // MARK: -
 
-    static func monthStart(from first: CalendarDay, adding months: Int) -> CalendarDay {
+    nonisolated static func monthStart(from first: CalendarDay, adding months: Int) -> CalendarDay {
         let index = first.year * 12 + (first.month - 1) + months
         return CalendarDay(year: index / 12, month: index % 12 + 1, day: 1)
     }
 
-    static func monthEnd(from first: CalendarDay, months: Int) -> CalendarDay {
+    nonisolated static func monthEnd(from first: CalendarDay, months: Int) -> CalendarDay {
         let start = monthStart(from: first, adding: months - 1)
         return CalendarDay(year: start.year, month: start.month, day: SeoulCalendar.daysInMonth(year: start.year, month: start.month))
     }
 
     /// 받침이 있으면 「은」, 없으면 「는」(한글이 아니면 「는」)
-    static func topicParticle(after word: String) -> String {
+    nonisolated static func topicParticle(after word: String) -> String {
         guard let scalar = word.unicodeScalars.last, (0xAC00...0xD7A3).contains(scalar.value) else { return "는" }
         return (scalar.value - 0xAC00) % 28 == 0 ? "는" : "은"
     }

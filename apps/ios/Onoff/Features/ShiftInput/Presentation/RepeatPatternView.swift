@@ -54,6 +54,7 @@ struct RepeatPatternView: View {
                 Button("취소") { onClose(nil) }
                     .onoffText(16)
                     .foregroundStyle(OnoffColor.textSecondary)
+                    .disabled(viewModel.isSaving) // 저장 중 닫으면 취소한 줄 알지만 저장된다
                 Spacer()
             }
         }
@@ -106,9 +107,12 @@ struct RepeatPatternView: View {
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel("\(cell.index + 1)번째 칸 \(cell.shift?.name ?? "모르는 근무")")
+                            .accessibilityValue(cell.index == viewModel.startIndex ? "\(viewModel.firstDay.month)월 \(viewModel.firstDay.day)일 시작" : "")
+                            .accessibilityAddTraits(viewModel.editingIndex == cell.index ? .isSelected : [])
                             Text(cell.index == viewModel.startIndex ? "\(viewModel.firstDay.month)/\(viewModel.firstDay.day)" : " ")
                                 .onoffText(11, .heavy, numeric: true)
                                 .frame(height: 14)
+                                .accessibilityHidden(true)
                         }
                     }
                 }
@@ -278,22 +282,26 @@ struct RepeatPatternView: View {
             }
             .padding(.horizontal, OnoffSpace.xxs)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: OnoffSpace.m), count: 4), spacing: OnoffSpace.m) {
-                ForEach(big) { type in
-                    Button { viewModel.put(type) } label: {
-                        EditKey(type: type, height: 58, cornerRadius: 14, fontSize: type.code.count == 1 ? 22 : 16,
-                                isSelected: viewModel.editingShift == type.id)
+            Grid(horizontalSpacing: OnoffSpace.m, verticalSpacing: OnoffSpace.m) {
+                GridRow {
+                    ForEach(big) { type in
+                        Button { viewModel.put(type) } label: {
+                            EditKey(type: type, height: 58, cornerRadius: 14, fontSize: type.code.count == 1 ? 22 : 16,
+                                    isSelected: viewModel.editingShift == type.id)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
-                if let leave {
-                    Button { viewModel.put(leave) } label: {
-                        EditKey(type: leave, height: 46, cornerRadius: OnoffRadius.button, fontSize: 14,
-                                isSelected: viewModel.editingShift == leave.id)
+                GridRow {
+                    if let leave {
+                        Button { viewModel.put(leave) } label: {
+                            EditKey(type: leave, height: 46, cornerRadius: OnoffRadius.button, fontSize: 14,
+                                    isSelected: viewModel.editingShift == leave.id)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Color.clear.frame(height: 46)
                     }
-                    .buttonStyle(.plain)
-                }
-                if !others.isEmpty {
                     Menu {
                         ForEach(others) { type in Button(type.name) { viewModel.put(type) } }
                     } label: {
@@ -301,17 +309,18 @@ struct RepeatPatternView: View {
                             .frame(maxWidth: .infinity, minHeight: 46)
                             .background(OnoffColor.trackBackground, in: RoundedRectangle(cornerRadius: OnoffRadius.button))
                     }
+                    .disabled(others.isEmpty)
                     .accessibilityLabel("다른 근무")
+                    Button(action: viewModel.removeEditing) {
+                        Text("지우기 · 이 칸 빼기").onoffText(14, .bold)
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                            .background(OnoffColor.trackBackground, in: RoundedRectangle(cornerRadius: OnoffRadius.button))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!viewModel.canRemove)
+                    .opacity(viewModel.canRemove ? 1 : 0.4)
+                    .gridCellColumns(2)
                 }
-                Button(action: viewModel.removeEditing) {
-                    Text("지우기 · 이 칸 빼기").onoffText(14, .bold)
-                        .frame(maxWidth: .infinity, minHeight: 46)
-                        .background(OnoffColor.trackBackground, in: RoundedRectangle(cornerRadius: OnoffRadius.button))
-                }
-                .buttonStyle(.plain)
-                .disabled(!viewModel.canRemove)
-                .opacity(viewModel.canRemove ? 1 : 0.4)
-                .gridCellColumns(2)
             }
         }
         .foregroundStyle(OnoffColor.ink)

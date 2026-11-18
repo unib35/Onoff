@@ -35,8 +35,12 @@ struct RootView: View {
                 UndoToast(offer: offer) {
                     router.undoOffer = nil
                     Task {
-                        try? await container.applyShiftInput.revert(offer.revert)
-                        router.dataDidChange()
+                        do {
+                            try await container.applyShiftInput.revert(offer.revert)
+                            router.dataDidChange()
+                        } catch {
+                            router.undoFailed = true
+                        }
                     }
                 } onExpire: {
                     if router.undoOffer == offer { router.undoOffer = nil }
@@ -47,6 +51,10 @@ struct RootView: View {
             }
         }
         .animation(.default, value: router.undoOffer)
+        // 문구는 원본에 없음(보류)
+        .alert("되돌리지 못했어요", isPresented: $router.undoFailed) {
+            Button("확인", role: .cancel) {}
+        }
         .sheet(item: $router.sheet, onDismiss: router.sheetDidDismiss) { sheet in
             sheet.view(container: container, router: router)
         }

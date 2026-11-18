@@ -29,4 +29,12 @@ struct AppRouterTests {
         router.dataDidChange()
         #expect(router.dataRevision == before + 1)
     }
+
+    @Test("다른 저장이 일어나면 되돌리기 안내를 버린다")
+    func undoOfferClearedOnDataChange() {
+        let router = AppRouter()
+        router.undoOffer = UndoOffer(message: "가짜", revert: DutyChanges())
+        router.dataDidChange()
+        #expect(router.undoOffer == nil)
+    }
 }
