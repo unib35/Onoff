@@ -1,5 +1,5 @@
 // REQ-009 · REQ-038 · UI-IOS-14a — 근무 입력 시작 시트. 1.0은 직접 넣기 키패드 · 칠하기를 켜고
-// 한 번에 채우기 순서 반복(22a)을 켠다. 사진 보며(22c · 다음 이슈) · 사진 인식 · 글자 · 병동 받기(1.2 · 2.0) · 지난달 복사(DEC-014) ·
+// 사진 보며(22c)와 한 번에 채우기 순서 반복(22a)을 켠다. 사진 인식 · 글자 · 병동 받기(1.2 · 2.0) · 지난달 복사(DEC-014) ·
 // 「지난번 방법으로 바로 열기」는 숨긴다.
 import SwiftUI
 
@@ -7,6 +7,8 @@ struct ShiftInputStartSheet: View {
     @State var viewModel: ShiftInputStartViewModel
     let onMethod: (ShiftInputMethod) -> Void
     let onRepeat: () -> Void
+    /// 「사진 보며」 — 22c
+    let onPhoto: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnoffSpace.l) {
@@ -29,6 +31,11 @@ struct ShiftInputStartSheet: View {
                     MethodCard(title: "칠하기", detail: "끌어서 여러 날")
                 }
                 .buttonStyle(.plain)
+                // 「글자」(타자 · 붙여넣기)는 1.0에서 숨김(REQ-038)
+                Button(action: onPhoto) {
+                    MethodCard(title: "사진 보며", detail: "사진 띄우고 키패드")
+                }
+                .buttonStyle(.plain)
             }
 
             Text("한 번에 채우기").onoffText(12, .bold).foregroundStyle(OnoffColor.textTertiary)
@@ -48,7 +55,7 @@ struct ShiftInputStartSheet: View {
         .padding(.top, 28)
         .padding(.bottom, 36)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .presentationDetents([.height(300)])
+        .presentationDetents([.height(394)])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(30)
         .presentationBackground(OnoffColor.card)

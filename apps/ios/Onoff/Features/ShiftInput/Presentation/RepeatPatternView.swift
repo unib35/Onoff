@@ -338,17 +338,6 @@ struct RepeatPatternView: View {
 
 // MARK: - 부품
 
-/// 지금 고치는 칸 · 고른 키 고리(2px 틈 + 먹 1.5px)
-private struct CurrentRing: View {
-    let cornerRadius: CGFloat
-
-    var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius + 2.75)
-            .stroke(OnoffColor.ink, lineWidth: 1.5)
-            .padding(-2.75)
-    }
-}
-
 private struct PatternKey: View {
     let shift: ShiftType?
     let isCurrent: Bool
@@ -364,29 +353,6 @@ private struct PatternKey: View {
             .background(colors?.background ?? OnoffColor.unregisteredFill, in: RoundedRectangle(cornerRadius: 10))
             .overlay { if isCurrent { CurrentRing(cornerRadius: 10) } }
             .contentShape(Rectangle())
-    }
-}
-
-private struct EditKey: View {
-    let type: ShiftType
-    let height: CGFloat
-    let cornerRadius: CGFloat
-    let fontSize: CGFloat
-    let isSelected: Bool
-
-    var body: some View {
-        let colors = ShiftPalette.colors(for: type.colorKey)
-        Text(type.code)
-            .onoffText(fontSize, .heavy)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-            .foregroundStyle(colors.foreground)
-            .frame(maxWidth: .infinity, minHeight: height)
-            .background(colors.background, in: RoundedRectangle(cornerRadius: cornerRadius))
-            .overlay { if isSelected { CurrentRing(cornerRadius: cornerRadius) } }
-            .contentShape(Rectangle())
-            .accessibilityLabel(type.name)
-            .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

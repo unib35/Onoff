@@ -36,6 +36,13 @@ enum OnoffColor {
     static let scrim = Color(hex: 0x8C867D)         // 시트 뒤 어둡게
     static let avatar = Color(hex: 0x2E3A6E)        // 홈 프로필 동그라미(12a)
     static let caution = Color(hex: 0x9A6200)       // 다시 확인해 달라는 안내(22b)
+    // 사진 보며 입력(22c · 22d)
+    static let photoBackdrop = Color(hex: 0xD6D0C5)              // 사진 뒤 바탕(22c)
+    static let photoPaper = Color(hex: 0xF6F3ED)                 // 키운 사진 틀(22d)
+    static let photoRow = Color(hex: 0xF5C451, opacity: 0.32)    // 내 줄 띠
+    static let photoColumn = Color(hex: 0x1F1D1A, opacity: 0.07) // 지금 날짜 세로 띠(22d)
+    static let photoPill = Color(hex: 0x1F1D1A, opacity: 0.8)    // 사진 위 안내 알약
+    static let photoButton = Color(hex: 0xFFFDF9, opacity: 0.94) // 사진 위 버튼(「다시 맞추기」)
 
     // 미등록 빗금(OFF 아님)
     static let unregisteredFill = Color(hex: 0xF6F3ED)

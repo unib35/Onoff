@@ -91,6 +91,7 @@ final class ShiftInputViewModel {
     // MARK: - 화면에 보이는 값
 
     var month: Int { draft.range.lowerBound.month }
+    var firstDay: CalendarDay { draft.range.lowerBound }
     /// 「초안 14칸」 — 시작할 때와 달라진 날 수
     var changedCount: Int { draft.changes.dayCount }
     var canUndo: Bool { draft.canUndo }
