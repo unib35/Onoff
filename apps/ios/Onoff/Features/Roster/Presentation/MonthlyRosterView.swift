@@ -1,4 +1,6 @@
-// REQ-007 · REQ-008 · REQ-017 · UI-IOS-1f — 이번 달 근무표 + 다음 달 「미등록」
+// REQ-007 · REQ-008 · REQ-017 · UI-IOS-22e(1f를 1.0으로 덜어낸 안) — 이번 달 근무표 + 다음 달 한 줄.
+// 칸에는 날짜와 근무만. 전날 나이트가 이어지는 날은 칸 위 남색 띠(시각은 날짜를 누르면 3c에서).
+// 희망 듀티 · 신청 마감 · 사진 버튼은 그 기능이 나오는 버전에서(REQ-038).
 import SwiftUI
 
 struct MonthlyRosterView: View {
@@ -20,13 +22,8 @@ struct MonthlyRosterView: View {
                     header(roster)
                     MonthGrid(roster: roster, onSelectDay: onSelectDay)
                     if roster.nextMonth.isAllUnregistered {
-                        Button { inputNextMonth(roster) } label: { NextMonthCard(nextMonth: roster.nextMonth) }
-                            .buttonStyle(.plain)
+                        NextMonthRow(month: roster.nextMonth.month) { inputNextMonth(roster) }
                     }
-                    Text(summaryText(roster))
-                        .onoffText(13, numeric: true)
-                        .foregroundStyle(OnoffColor.textSecondary)
-                        .padding(.horizontal, 6)
                 }
                 .padding(.horizontal, OnoffSpace.xl)
                 .padding(.top, OnoffSpace.xs)
@@ -60,26 +57,21 @@ struct MonthlyRosterView: View {
                     .overlay(Capsule().strokeBorder(OnoffColor.line, lineWidth: 1))
             }
             .buttonStyle(.plain)
-            // 「사진」 버튼(1.2)은 숨기고 그 자리에 같은 모양 「입력」(DEC-014)
+            // 22e 「+ 넣기」 — 근무 입력 시작(14a)
             Button { onInput(roster.year, roster.month) } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "square.and.pencil").font(.system(size: 14, weight: .semibold))
-                    Text("입력").onoffText(14, .semibold)
+                HStack(spacing: 5) {
+                    Image(systemName: "plus").font(.system(size: 13, weight: .bold))
+                    Text("넣기").onoffText(14, .semibold)
                 }
                 .foregroundStyle(OnoffColor.onInk)
-                .padding(.horizontal, 14)
+                .padding(.leading, 11)
+                .padding(.trailing, 14)
                 .frame(height: 36)
                 .background(OnoffColor.ink, in: Capsule())
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, OnoffSpace.xs)
-    }
-
-    /// 「10월 예정 · D 8 · E 6 · N 7 · OFF 10 · 182시간」
-    private func summaryText(_ roster: MonthlyRoster) -> String {
-        let counts = roster.counts.map { "\($0.type.code) \($0.count)" }
-        return (["\(roster.month)월 예정"] + counts + [DurationText.hoursMinutes(roster.workMinutes)]).joined(separator: " · ")
     }
 }
 
@@ -108,29 +100,22 @@ private struct MonthGrid: View {
                         .buttonStyle(.plain)
                 }
             }
-            legend
+            summary
         }
         .padding(EdgeInsets(top: 12, leading: 8, bottom: 8, trailing: 8))
         .background(OnoffColor.card, in: RoundedRectangle(cornerRadius: OnoffRadius.panel))
     }
 
-    private var legend: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 5) {
-                Circle().fill(OnoffColor.ink).frame(width: 6, height: 6)
-                Text("개인 일정")
-            }
-            if let legend = roster.carryLegend {
-                HStack(spacing: 5) {
-                    Text(ShiftFormat.carry(legend.end)).fontWeight(.bold).foregroundStyle(ShiftPalette.colors(for: legend.colorKey).background)
-                    Text("전날 나이트가 이어짐")
-                }
-            }
+    /// 22e 「근무 21일 · OFF 10일」 · 「182시간」
+    private var summary: some View {
+        HStack {
+            Text("근무 \(roster.workDays)일 · OFF \(roster.offDays)일")
             Spacer()
+            Text(DurationText.hoursMinutes(roster.workMinutes))
         }
-        .onoffText(12)
+        .onoffText(13, numeric: true)
         .foregroundStyle(OnoffColor.textSecondary)
-        .padding(EdgeInsets(top: 6, leading: 6, bottom: 2, trailing: 6))
+        .padding(EdgeInsets(top: 8, leading: 8, bottom: 2, trailing: 8))
         .overlay(alignment: .top) { Rectangle().fill(OnoffColor.divider).frame(height: 1) }
     }
 }
@@ -145,18 +130,22 @@ private struct DayCell: View {
                 .onoffText(13, .semibold, numeric: true)
                 .foregroundStyle(isSunday ? OnoffColor.sunday : OnoffColor.textSecondary)
                 .frame(height: 15)
-            if let type = day.duty.state.shiftType {
-                ShiftChip(code: type.code, colorKey: type.colorKey, height: 22, cornerRadius: 7,
-                          fontSize: type.code.count > 1 ? 12 : 13)
-            } else {
-                // 미등록 — OFF로 보이지 않게(REQ-008)
-                UnregisteredPattern(cornerRadius: 7).frame(height: 22)
+            Group {
+                if let type = day.duty.state.shiftType {
+                    ShiftChip(code: type.code, colorKey: type.colorKey, height: 22, cornerRadius: 7,
+                              fontSize: type.code.count > 1 ? 12 : 13)
+                } else {
+                    // 미등록 — OFF로 보이지 않게(REQ-008)
+                    UnregisteredPattern(cornerRadius: 7).frame(height: 22)
+                }
             }
-            if let end = day.carryOverEnd {
-                Text(ShiftFormat.carry(end))
-                    .onoffText(12, .bold, numeric: true)
-                    .foregroundStyle(ShiftPalette.colors(for: day.carryOverColorKey ?? "").background)
-                    .frame(height: 12)
+            .overlay(alignment: .top) {
+                // 전날 나이트가 이어짐 — 칩 위 남색 띠(22e). 시각은 날짜 상세(3c)에서
+                if day.carryOverEnd != nil {
+                    UnevenRoundedRectangle(topLeadingRadius: 7, topTrailingRadius: 7)
+                        .fill(ShiftPalette.colors(for: day.carryOverColorKey ?? "").background)
+                        .frame(height: 5)
+                }
             }
             Spacer(minLength: 0)
         }
@@ -176,48 +165,36 @@ private struct DayCell: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+        .accessibilityHint(day.carryOverEnd.map { "전날 나이트가 \($0.hour)시 \($0.minute)분까지 이어짐" } ?? "")
     }
 }
 
 // MARK: - 다음 달
 
-private struct NextMonthCard: View {
-    let nextMonth: MonthlyRoster.NextMonth
+/// 22e 「11월 근무표 · 아직 안 넣었어요 · 넣기」
+private struct NextMonthRow: View {
+    let month: Int
+    let onInput: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("\(nextMonth.month)월").onoffText(17, .bold)
-                Spacer()
-                Text("근무표 미등록")
-                    .onoffText(12, .bold)
-                    .foregroundStyle(OnoffColor.textSecondary)
-                    .padding(.horizontal, 10)
-                    .frame(height: 26)
-                    .background(UnregisteredPattern(cornerRadius: 8))
+        HStack(spacing: OnoffSpace.l) {
+            UnregisteredPattern(cornerRadius: 8).frame(width: 32, height: 32)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(month)월 근무표").onoffText(15, .bold)
+                Text("아직 안 넣었어요").onoffText(13).foregroundStyle(OnoffColor.textSecondary)
             }
-            HStack(spacing: 2) {
-                ForEach(nextMonth.days, id: \.date) { _ in
-                    UnregisteredPattern(cornerRadius: 3).frame(height: 26)
-                }
+            Spacer()
+            Button(action: onInput) {
+                Text("넣기").onoffText(14, .bold)
+                    .foregroundStyle(OnoffColor.onInk)
+                    .padding(.horizontal, OnoffSpace.xl)
+                    .frame(height: 36)
+                    .background(OnoffColor.ink, in: Capsule())
             }
-            HStack {
-                Text("1")
-                Spacer()
-                // 「14–17 희망 듀티」는 1.3 — REQ-038
-                Text("\(nextMonth.days.count)")
-            }
-            .onoffText(12, numeric: true)
-            .foregroundStyle(OnoffColor.textTertiary)
-            .padding(.top, -4)
-            // 「희망 듀티 4건 준비 중 · 신청 마감」은 1.3 — REQ-038
-            Text("OFF가 아니라 아직 정보가 없는 상태예요.")
-                .onoffText(14, .bold)
-                .lineSpacing(14 * 0.5)
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(month)월 근무 넣기")
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, OnoffSpace.xl)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(OnoffColor.card, in: RoundedRectangle(cornerRadius: OnoffRadius.panel))
+        .padding(EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 12))
+        .background(OnoffColor.card, in: RoundedRectangle(cornerRadius: 18))
     }
 }

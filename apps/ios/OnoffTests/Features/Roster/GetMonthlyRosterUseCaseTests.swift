@@ -68,15 +68,13 @@ struct GetMonthlyRosterUseCaseTests {
         #expect(october.days[8].carryOverEnd == nil) // 10/9 N(전날도 N)
     }
 
-    @Test("범례는 날짜를 넘는 근무 유형에서 — 없으면 숨김")
-    func carryLegend() async throws {
+    @Test("22e 판 아래 「근무 N일 · OFF N일」 — 종류로 센다")
+    func workAndOffDays() async throws {
         let roster = try await useCase()(year: 2026, month: 10)
-        #expect(roster.carryLegend == .init(end: TimeOfDay(hour: 7, minute: 30), colorKey: "N"))
-        let dayOnly = GetMonthlyRosterUseCase(
-            shiftTypes: InMemoryShiftTypeRepository([TestSupport.type("D")]),
-            loadDutyDays: TestSupport.loadDutyDays([:], types: [TestSupport.type("D")]),
-            memos: InMemoryMemoRepository([]), clock: TestSupport.referenceClock)
-        #expect(try await dayOnly(year: 2026, month: 10).carryLegend == nil)
+        let work = roster.counts.filter { $0.type.kind == .work }.map(\.count).reduce(0, +)
+        let off = roster.counts.filter { $0.type.kind == .off }.map(\.count).reduce(0, +)
+        #expect(roster.workDays == work && roster.offDays == off)
+        #expect(roster.workDays > 0 && roster.offDays > 0)
     }
 
     @Test("연말: 12월 근무표의 다음 달은 다음 해 1월")

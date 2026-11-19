@@ -29,12 +29,13 @@ struct MonthlyRoster: Sendable, Equatable {
     /// 근무(kind == .work) 시간 합(분)
     let workMinutes: Int
     let nextMonth: NextMonth
-    /// 범례 「~7:30 전날 나이트가 이어짐」 — 날짜를 넘는 근무 유형이 없으면 nil
-    let carryLegend: CarryLegend?
 
-    struct CarryLegend: Sendable, Equatable {
-        let end: TimeOfDay
-        let colorKey: String
+    /// 22e 「근무 21일 · OFF 10일」 — 종류가 근무인 날 · 휴무인 날
+    var workDays: Int { days(of: .work) }
+    var offDays: Int { days(of: .off) }
+
+    private func days(of kind: ShiftKind) -> Int {
+        counts.filter { $0.type.kind == kind }.reduce(0) { $0 + $1.count }
     }
 
     struct NextMonth: Sendable, Equatable {
@@ -89,10 +90,7 @@ struct GetMonthlyRosterUseCase: Sendable {
             days: rosterDays,
             counts: counts,
             workMinutes: assigned.filter { $0.kind == .work }.reduce(0) { $0 + $1.workMinutes },
-            nextMonth: .init(month: nextFirst.month, days: days.filter { $0.date >= nextFirst }),
-            carryLegend: order
-                .first { $0.kind == .work && $0.segments.contains(where: \.endsNextDay) }
-                .flatMap { type in type.segments.last(where: \.endsNextDay).map { MonthlyRoster.CarryLegend(end: $0.end, colorKey: type.colorKey) } }
+            nextMonth: .init(month: nextFirst.month, days: days.filter { $0.date >= nextFirst })
         )
     }
 }
