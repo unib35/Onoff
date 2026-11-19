@@ -8,6 +8,8 @@ struct ApplyShiftInputUseCase: Sendable {
         let savedDays: Int
         /// 이어서 고칠 초안 — 바뀐 날 없음
         let draft: DutyDraft
+        /// 저장한 것을 통째로 되돌리는 변경(순서 반복 「되돌리기」 — 22a)
+        var revert = DutyChanges()
     }
 
     let duties: any DutyRepository
@@ -15,7 +17,14 @@ struct ApplyShiftInputUseCase: Sendable {
     func callAsFunction(_ draft: DutyDraft) async throws -> Result {
         let changes = draft.changes
         guard !changes.isEmpty else { return Result(savedDays: 0, draft: draft) }
+        let revert = draft.revertChanges
         try await duties.apply(changes)
-        return Result(savedDays: changes.dayCount, draft: draft.applied())
+        return Result(savedDays: changes.dayCount, draft: draft.applied(), revert: revert)
+    }
+
+    /// 저장한 것을 한 번에 되돌린다 — `Result.revert`를 그대로 넣는다
+    func revert(_ changes: DutyChanges) async throws {
+        guard !changes.isEmpty else { return }
+        try await duties.apply(changes)
     }
 }

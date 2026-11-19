@@ -1,10 +1,12 @@
 // REQ-009 · REQ-038 · UI-IOS-14a — 근무 입력 시작 시트. 1.0은 직접 넣기 키패드 · 칠하기를 켜고
-// 순서 반복(다음 이슈) · 사진 · 글자 · 병동 받기(1.2 · 2.0) · 지난달 복사(DEC-014) · 「지난번 방법으로 바로 열기」는 숨긴다.
+// 한 번에 채우기 순서 반복(22a)을 켠다. 사진 보며(22c · 다음 이슈) · 사진 인식 · 글자 · 병동 받기(1.2 · 2.0) · 지난달 복사(DEC-014) ·
+// 「지난번 방법으로 바로 열기」는 숨긴다.
 import SwiftUI
 
 struct ShiftInputStartSheet: View {
     @State var viewModel: ShiftInputStartViewModel
     let onMethod: (ShiftInputMethod) -> Void
+    let onRepeat: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnoffSpace.l) {
@@ -28,13 +30,25 @@ struct ShiftInputStartSheet: View {
                 }
                 .buttonStyle(.plain)
             }
+
+            Text("한 번에 채우기").onoffText(12, .bold).foregroundStyle(OnoffColor.textTertiary)
+            HStack(spacing: 6) {
+                Button(action: onRepeat) {
+                    Text("순서 반복").onoffText(13, .bold)
+                        .frame(maxWidth: .infinity, minHeight: 40)
+                        .background(OnoffColor.background, in: RoundedRectangle(cornerRadius: OnoffRadius.button))
+                }
+                .buttonStyle(.plain)
+                // 원본 14a는 두 칸(지난달 복사 · DEC-014로 나중) — 자리만 맞춘다
+                Color.clear.frame(maxWidth: .infinity, maxHeight: 40)
+            }
         }
         .foregroundStyle(OnoffColor.ink)
         .padding(.horizontal, 18)
         .padding(.top, 28)
         .padding(.bottom, 36)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .presentationDetents([.height(220)])
+        .presentationDetents([.height(300)])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(30)
         .presentationBackground(OnoffColor.card)

@@ -24,6 +24,9 @@ enum DebugLaunch {
         case "input-paint":
             router.selectedTab = .roster
             router.present(AppCover.shiftInput(.editor(year: 2026, month: 10, day: nil, method: .paint)))
+        case "input-repeat":
+            router.selectedTab = .roster
+            router.present(AppCover.shiftInput(.repeatPattern(year: 2026, month: 11)))
         case "shift-types":
             router.navigate(.shiftType(.list))
         default:

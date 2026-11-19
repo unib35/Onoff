@@ -35,6 +35,7 @@ enum OnoffColor {
     static let sunday = Color(hex: 0xC2412D)        // 일요일 · 경고 빨강
     static let scrim = Color(hex: 0x8C867D)         // 시트 뒤 어둡게
     static let avatar = Color(hex: 0x2E3A6E)        // 홈 프로필 동그라미(12a)
+    static let caution = Color(hex: 0x9A6200)       // 다시 확인해 달라는 안내(22b)
 
     // 미등록 빗금(OFF 아님)
     static let unregisteredFill = Color(hex: 0xF6F3ED)

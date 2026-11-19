@@ -111,9 +111,10 @@ struct DutyDraft: Hashable, Sendable {
     }
 
     /// `pattern`을 `from`부터 날마다 차례로 반복한다. 휴가가 이미 들어 있는 날은 건너뛴다(REQ-013).
+    /// `keepExisting`이면 이미 근무가 있는 날도 그대로 둔다(22a 「이미 넣은 근무 · 그대로」) — 순서 번호는 날짜대로 쓴다.
     /// 기간 밖은 건드리지 않는다.
     mutating func repeatPattern(_ pattern: [ShiftTypeID], from start: CalendarDay, through end: CalendarDay,
-                                afterLeave: AfterLeave = .continue) {
+                                afterLeave: AfterLeave = .continue, keepExisting: Bool = false) {
         // 기간과 겹치는 날만 돈다. 순서 번호는 `from`부터 센다(기간 앞에서 시작해도 날짜 기준으로 맞물림 —
         // 기간 앞의 날은 초안에 없으니 「밀어서」도 휴가 없이 센다).
         let lower = max(start, range.lowerBound), upper = min(end, range.upperBound)
@@ -124,6 +125,8 @@ struct DutyDraft: Hashable, Sendable {
         while day <= upper {
             if isProtected(day) {
                 if afterLeave == .continue { index += 1 }
+            } else if keepExisting, current[day] != nil {
+                index += 1
             } else {
                 if current[day] != pattern[index % pattern.count] { updates[day] = pattern[index % pattern.count] }
                 index += 1
@@ -162,6 +165,18 @@ struct DutyDraft: Hashable, Sendable {
         var next = DutyDraft(range: range, original: current, protectedTypes: protectedTypes, cursor: cursor)
         next.history = []
         return next
+    }
+
+    /// 적용한 것을 통째로 되돌리는 변경 — 바뀐 날을 시작할 때 값으로(없던 날은 미등록으로).
+    /// 순서 반복은 누르면 바로 저장하고 이것으로 한 번에 취소한다(22a).
+    var revertChanges: DutyChanges {
+        var result = DutyChanges()
+        let now = changes
+        for day in now.assigned.keys {
+            if let before = original[day] { result.assigned[day] = before } else { result.cleared.insert(day) }
+        }
+        for day in now.cleared { if let before = original[day] { result.assigned[day] = before } }
+        return result
     }
 
     // MARK: - 되돌리기
