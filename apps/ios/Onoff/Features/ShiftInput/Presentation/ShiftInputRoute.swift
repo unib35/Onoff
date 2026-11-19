@@ -8,6 +8,12 @@ enum ShiftInputRoute: Hashable {
     case editor(year: Int, month: Int, day: CalendarDay?, method: ShiftInputMethod = .keypad)
     /// 22a 순서 반복 — 누르면 바로 저장
     case repeatPattern(year: Int, month: Int)
+    /// 22c 사진 보며 입력 — 시스템 사진 선택기부터
+    case photo(year: Int, month: Int)
+    #if DEBUG
+    /// 개발용 — 만든 가짜 근무표 사진으로 22c(맞춘 뒤) · 22d(14일 입력 중)를 바로 띄운다
+    case photoSample(entering: Bool)
+    #endif
 
     @MainActor @ViewBuilder
     func view(container: AppContainer, router: AppRouter) -> some View {
@@ -18,7 +24,8 @@ enum ShiftInputRoute: Hashable {
                 onMethod: { method in
                     router.present(AppCover.shiftInput(.editor(year: year, month: month, day: nil, method: method)))
                 },
-                onRepeat: { router.present(AppCover.shiftInput(.repeatPattern(year: year, month: month))) }
+                onRepeat: { router.present(AppCover.shiftInput(.repeatPattern(year: year, month: month))) },
+                onPhoto: { router.present(AppCover.shiftInput(.photo(year: year, month: month))) }
             )
         case let .repeatPattern(year, month):
             RepeatPatternView(
@@ -33,6 +40,20 @@ enum ShiftInputRoute: Hashable {
                     router.dismissCover()
                 }
             )
+        case let .photo(year, month):
+            PhotoInputView(viewModel: Self.photoViewModel(year: year, month: month, container: container),
+                           onClose: { saved in
+                               if saved { router.dataDidChange() }
+                               router.dismissCover()
+                           })
+        #if DEBUG
+        case let .photoSample(entering):
+            let sample = DebugSamplePhoto.sample
+            let viewModel = Self.photoViewModel(year: 2026, month: 11, container: container)
+            let _ = DebugSamplePhoto.place(viewModel, sample: sample)
+            PhotoInputView(viewModel: viewModel, onClose: { _ in router.dismissCover() },
+                           onLoaded: { DebugSamplePhoto.prepare($0, entering: entering) })
+        #endif
         case let .editor(year, month, day, method):
             ShiftInputView(
                 viewModel: ShiftInputViewModel(
@@ -45,5 +66,13 @@ enum ShiftInputRoute: Hashable {
                 }
             )
         }
+    }
+
+    @MainActor
+    private static func photoViewModel(year: Int, month: Int, container: AppContainer) -> PhotoInputViewModel {
+        PhotoInputViewModel(input: ShiftInputViewModel(
+            range: StartShiftInputUseCase.month(year: year, month: month), cursor: nil, method: .keypad,
+            startShiftInput: container.startShiftInput, applyShiftInput: container.applyShiftInput
+        ))
     }
 }

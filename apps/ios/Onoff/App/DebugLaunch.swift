@@ -27,6 +27,9 @@ enum DebugLaunch {
         case "input-repeat":
             router.selectedTab = .roster
             router.present(AppCover.shiftInput(.repeatPattern(year: 2026, month: 11)))
+        case "input-photo-align", "input-photo":
+            router.selectedTab = .roster
+            router.present(AppCover.shiftInput(.photoSample(entering: screen == "input-photo")))
         case "shift-types":
             router.navigate(.shiftType(.list))
         default:
