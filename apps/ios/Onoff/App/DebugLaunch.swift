@@ -15,6 +15,12 @@ enum DebugLaunch {
             if let day = Int(value.dropFirst("roster-day-".count)) {
                 router.present(.roster(.day(CalendarDay(year: 2026, month: 10, day: day))))
             }
+        case "input-start":
+            router.selectedTab = .roster
+            router.present(AppSheet.shiftInput(.start(year: 2026, month: 11)))
+        case "input-keypad":
+            router.selectedTab = .roster
+            router.present(AppCover.shiftInput(.editor(year: 2026, month: 10, day: CalendarDay(year: 2026, month: 10, day: 14))))
         case "shift-types":
             router.navigate(.shiftType(.list))
         default:

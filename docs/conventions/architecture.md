@@ -117,7 +117,8 @@ View
 - `AppRoute`는 기능별 Route를 감싼다: `AppRoute ├ OnboardingRoute ├ HomeRoute ├ RosterRoute ├ ShiftInputRoute ├ AlarmRoute ├ SettingsRoute`
 - 탭 이름: 홈 · 근무표 · 계획 · 공유(DEC-009). 1.0은 홈 · 근무표 두 개, 공유는 1.2 · 계획은 1.3에 추가(DEC-011).
 - 각 `<Feature>Route`는 그 기능 폴더에 두고, 목적지 → 화면 생성을 맡는다.
-- `AppRouter`는 스택 · 탭 · 시트 · 뒤로 가기(`navigate` · `back` · `backToRoot` · `replace`)만 다룬다.
+- `AppRouter`는 스택 · 탭 · 시트 · 전체 화면(`AppCover` — 시트가 떠 있으면 닫힌 뒤 띄움) · 뒤로 가기(`navigate` · `back` · `backToRoot` · `replace`)만 다룬다.
+- 시트 · 전체 화면에서 저장해 근무가 바뀌면 `router.dataDidChange()` — 탭 첫 화면(홈 · 근무표)은 `router.dataRevision`을 받아 `.task(id:)`로 다시 불러온다. 데이터 자체는 라우터에 두지 않는다.
 
 ## 에이전트 오케스트레이션
 

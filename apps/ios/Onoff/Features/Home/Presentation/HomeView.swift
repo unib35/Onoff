@@ -4,6 +4,8 @@ import SwiftUI
 struct HomeView: View {
     @State var viewModel: HomeViewModel
     let onProfile: () -> Void
+    /// 저장된 근무가 바뀌면 바뀐다 — 다시 불러온다
+    var dataRevision = 0
 
     var body: some View {
         ScrollView {
@@ -28,7 +30,7 @@ struct HomeView: View {
         .scrollIndicators(.hidden)
         .background(OnoffColor.background)
         .foregroundStyle(OnoffColor.ink)
-        .task { await viewModel.load() }
+        .task(id: dataRevision) { await viewModel.load() }
     }
 
     private var header: some View {

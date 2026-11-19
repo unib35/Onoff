@@ -31,8 +31,11 @@ struct RootView: View {
                 .ignoresSafeArea(.container, edges: .bottom)
             }
         }
-        .sheet(item: $router.sheet) { sheet in
+        .sheet(item: $router.sheet, onDismiss: router.sheetDidDismiss) { sheet in
             sheet.view(container: container, router: router)
+        }
+        .fullScreenCover(item: $router.cover) { cover in
+            cover.view(container: container, router: router)
         }
         #if DEBUG
         .task { DebugLaunch.apply(to: router) }
