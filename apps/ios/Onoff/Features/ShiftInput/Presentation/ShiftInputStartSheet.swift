@@ -1,10 +1,10 @@
-// REQ-009 · REQ-038 · UI-IOS-14a — 근무 입력 시작 시트. 1.0은 직접 넣기 키패드만 켜고
-// 칠하기 · 순서 반복(다음 이슈) · 사진 · 글자 · 병동 받기(1.2 · 2.0) · 지난달 복사(DEC-014) · 「지난번 방법으로 바로 열기」는 숨긴다.
+// REQ-009 · REQ-038 · UI-IOS-14a — 근무 입력 시작 시트. 1.0은 직접 넣기 키패드 · 칠하기를 켜고
+// 순서 반복(다음 이슈) · 사진 · 글자 · 병동 받기(1.2 · 2.0) · 지난달 복사(DEC-014) · 「지난번 방법으로 바로 열기」는 숨긴다.
 import SwiftUI
 
 struct ShiftInputStartSheet: View {
     @State var viewModel: ShiftInputStartViewModel
-    let onKeypad: () -> Void
+    let onMethod: (ShiftInputMethod) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: OnoffSpace.l) {
@@ -19,8 +19,12 @@ struct ShiftInputStartSheet: View {
             Text("직접 넣기 · 중간에 바꿀 수 있어요").onoffText(12, .bold).foregroundStyle(OnoffColor.textTertiary)
 
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
-                Button(action: onKeypad) {
+                Button { onMethod(.keypad) } label: {
                     MethodCard(title: "키패드", detail: "하루씩 · 누르면 다음 날")
+                }
+                .buttonStyle(.plain)
+                Button { onMethod(.paint) } label: {
+                    MethodCard(title: "칠하기", detail: "끌어서 여러 날")
                 }
                 .buttonStyle(.plain)
             }
